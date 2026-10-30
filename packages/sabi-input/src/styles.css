@@ -29,15 +29,6 @@
     display: none;
   }
 
-  sabi-input[prefix]::before {
-    content: attr(prefix);
-    flex: none;
-    white-space: pre;
-    opacity: 0.5;
-    pointer-events: none;
-    user-select: none;
-  }
-
   sabi-input > input {
     flex: none;
     min-width: 0;
@@ -57,5 +48,17 @@
   sabi-input > :not(input) {
     flex: none;
     white-space: pre;
+  }
+
+  /* Starts where the text ends, over the input's 2px of caret room (core.ts). */
+  sabi-input > input + * {
+    margin-inline-start: -2px;
+  }
+
+  /* Anything before the input is a prefix; clicks fall through to the strip. */
+  sabi-input > :has(~ input) {
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
   }
 }

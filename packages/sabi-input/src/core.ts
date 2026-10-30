@@ -19,8 +19,11 @@ const measure = (input: HTMLInputElement, text: string) => {
 const length = (style: CSSStyleDeclaration, name: string, fallback: number) =>
   Number.parseFloat(style.getPropertyValue(name)) || fallback;
 
+// Server renderers import this module where HTMLElement doesn't exist.
+const Base = (globalThis.HTMLElement ?? class {}) as typeof HTMLElement;
+
 // LTR only for now: RTL needs negative scrollLeft handling and mirrored insets.
-export class SabiInput extends HTMLElement {
+export class SabiInput extends Base {
   #input: HTMLInputElement | null = null;
   #controller: AbortController | null = null;
   #frame = 0;
@@ -58,7 +61,9 @@ export class SabiInput extends HTMLElement {
     this.#input = input;
     this.#watchValue(input, signal);
 
-    input.addEventListener('input', () => this.#syncNow(true), { signal });
+    // Deferred, not synchronous: writing to the DOM mid-event can trigger observers
+    // that re-render a controlled React input and revert the edit before React sees it.
+    input.addEventListener('input', () => this.#schedule(true), { signal });
     input.addEventListener('focus', () => this.#schedule(true), { signal });
     input.addEventListener('blur', () => this.#schedule(false), { signal });
     // The browser moves the caret right after keydown; correcting in the next
@@ -133,7 +138,8 @@ export class SabiInput extends HTMLElement {
     const fadeWidth = length(style, '--sabi-fade-width', 22);
     const safeInset = Math.max(gutter, fadeWidth - length(style, '--sabi-caret-penetration', 4));
 
-    input.style.width = `${Math.ceil(measure(input, input.value || input.placeholder)) + 2}px`;
+    // 2px of room for the caret at the end; whatever follows the input overlaps it (styles.css).
+    input.style.width = `${measure(input, input.value || input.placeholder) + 2}px`;
     const maxScroll = Math.max(0, this.scrollWidth - this.clientWidth);
     const focused = document.activeElement === input;
     const { selectionStart: start, selectionEnd: end } = input;
@@ -180,7 +186,8 @@ export class SabiInput extends HTMLElement {
 }
 
 export const define = (name = 'sabi-input') => {
-  if (!customElements.get(name)) customElements.define(name, class extends SabiInput {});
+  if (typeof customElements === 'undefined' || customElements.get(name)) return;
+  customElements.define(name, class extends SabiInput {});
 };
 
 declare global {

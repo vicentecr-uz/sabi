@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
     <title>Sabi fixtures</title>
     <style>
       body { font: 16px/1.4 system-ui, sans-serif; margin: 40px; background: #fff; color: #111; }
@@ -19,12 +20,14 @@
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input id="prefixed" prefix="https://">
+      <sabi-input id="prefixed">
+        <span>https://</span>
         <input aria-label="URL" value="example.com/a/very/long/path/that/keeps/going/and/going" />
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input id="long-prefix" prefix="https://a-very-long-prefix-that-is-wider-than-the-field.example/">
+      <sabi-input id="long-prefix">
+        <span>https://a-very-long-prefix-that-is-wider-than-the-field.example/</span>
         <input aria-label="Long prefix" value="path/that/keeps/going/and/going/and/going" />
       </sabi-input>
     </div>
