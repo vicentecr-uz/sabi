@@ -1,42 +1,28 @@
-# Sabi
+<!-- TODO: demo video -->
 
-A text input whose overflowing edges fade, with the caret always kept clear of the fade.
+[Sabi](https://sabi.vicentecr.uz/) is a text input whose overflowing edges fade, with the caret always kept in view. You can read more about why and how it was built [here](https://sabi.vicentecr.uz/how-it-works).
+
+## Usage
+
+Install it in your project:
 
 ```bash
-npm i sabi-input
+npm install sabi-input
 ```
+
+Import it once to register `<sabi-input>`, then wrap any `<input>` with it. An element before the input becomes a prefix; one after it follows the end of the text.
 
 ```html
 <script type="module">import 'sabi-input';</script>
 
 <label class="field">
-  <sabi-input prefix="https://">
+  <sabi-input>
+    <span>https://</span>
     <input name="url" />
   </sabi-input>
 </label>
 ```
 
-`<sabi-input>` wraps your own `<input>`, so forms, labels, autofill and framework bindings keep working. It is the scrolling text strip, not the field box: put backgrounds, borders and focus styles on a parent, because the fade masks everything the element paints. Any element after the input (a suffix, a button) follows the end of the text.
+## Documentation
 
-## Styling
-
-| Variable | Default |
-| --- | --- |
-| `--sabi-fade-width` | `22px` |
-| `--sabi-fade-solid` | `8px` |
-| `--sabi-caret-penetration` | `4px` |
-| `--sabi-edge-gutter` | `8px` |
-
-Styles are injected once into a `@layer`, so your own rules win. To ship the CSS yourself, import `sabi-input/core` and `sabi-input/styles.css` instead.
-
-## Development
-
-```bash
-bun install
-bun run test   # Playwright: Chromium, Firefox, WebKit
-bun run dev    # docs site
-```
-
-## License
-
-MIT
+Find the full API reference in the [documentation](https://sabi.vicentecr.uz/getting-started).

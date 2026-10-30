@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-type Snapshot = { caretX: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number };
+type Snapshot = { caretX: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number; hiddenRight: number; caret: number | null };
 
 // Caret geometry measured independently of the element, at the end of each
 // rendering step (ResizeObserver runs after rAF and layout, right before paint).
@@ -22,6 +22,8 @@ const installProbe = (page: Page) => page.addInitScript(() => {
       fadeRight: host.hasAttribute('data-fade-right'),
       leftProgress: Number(getComputedStyle(host).getPropertyValue('--sabi-fade-left-progress')),
       rightProgress: Number(getComputedStyle(host).getPropertyValue('--sabi-fade-right-progress')),
+      hiddenRight: host.scrollWidth - host.clientWidth - host.scrollLeft,
+      caret: input.selectionStart,
     };
   };
   (window as any).__probe = (host: HTMLElement, frames: number) => {
@@ -114,10 +116,13 @@ for (const [name, key, from, expected] of [
 ] as const) {
   test(`jumping to the ${name} keeps the caret clear of the fade`, async ({ page }) => {
     await focusAt(page, 'prefixed', from);
-    const snapshots = await pressAndProbe(page, 'prefixed', key);
-    for (const s of snapshots) expectCaretClear(s);
-    // The fade on the far side must be at full strength in the first painted frame.
-    expect(snapshots[0][expected === 'start' ? 'rightProgress' : 'leftProgress']).toBe(1);
+    const snapshots = await pressAndProbe(page, 'prefixed', key, 5);
+    for (const s of snapshots) {
+      expectCaretClear(s);
+      // In every painted frame the fades match the scroll position: no frame where they lag behind it.
+      expect(s.leftProgress).toBeCloseTo(Math.min(1, s.scrollLeft / 22), 2);
+      expect(s.rightProgress).toBeCloseTo(Math.min(1, Math.max(0, s.hiddenRight) / 22), 2);
+    }
     const state = await page.locator('#prefixed input').evaluate((input: HTMLInputElement) => ({ caret: input.selectionStart, length: input.value.length }));
     expect(state.caret).toBe(expected === 'start' ? 0 : state.length);
     await expect(page.locator('#prefixed')).toHaveAttribute(expected === 'start' ? 'data-fade-right' : 'data-fade-left', '');
@@ -161,12 +166,18 @@ test('programmatic value changes re-measure', async ({ page }) => {
 
 test('the trail follows the end of the text', async ({ page }) => {
   await page.locator('#trailed input').fill('a slightly longer slug');
-  const gap = await page.evaluate(() => {
+  // Measured from where the text ends, not from the input's box (which has caret room).
+  const gap = () => page.evaluate(() => {
     const input = document.querySelector<HTMLInputElement>('#trailed input')!;
-    const trail = document.getElementById('trail')!;
-    return trail.getBoundingClientRect().left - input.getBoundingClientRect().right;
+    const span = document.createElement('span');
+    span.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${getComputedStyle(input).font}`;
+    span.textContent = input.value;
+    document.body.append(span);
+    const textEnd = input.getBoundingClientRect().left + span.getBoundingClientRect().width;
+    span.remove();
+    return document.getElementById('trail')!.getBoundingClientRect().left - textEnd;
   });
-  expect(Math.abs(gap)).toBeLessThanOrEqual(1);
+  await expect.poll(async () => Math.abs(await gap())).toBeLessThanOrEqual(0.5);
 });
 
 test('form reset re-measures', async ({ page }) => {
