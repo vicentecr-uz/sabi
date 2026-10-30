@@ -22,11 +22,11 @@ Each step: **do** → **expect**. Anything else is a bug.
 | Hold ← from the end | The caret walks left; the text scrolls before the caret reaches the fade |
 | Option+← repeatedly | Jumps word by word, same as above |
 | Arrow over the 👍🏽 | One press moves past the whole emoji |
-| Long-prefix field: Cmd+← from the end | The caret stops at the middle; the prefix is cut off on the left, not pushed past the middle |
+| Long-prefix field: Cmd+← from the end | The caret stops a third of the way across; the prefix is cut off on the left, not pushed further |
 | Long-prefix field: scroll with the trackpad to the left | The rest of the prefix is reachable |
 | Trackpad-scroll any long field slowly | The fades grow and shrink with the scroll, no jumps |
 | Click the empty space to the right of `short.md` | Focus with the caret at the end |
-| Type in the `.md` field | `.md` stays glued to the end of the text |
+| Type in the `.md` field | `.md` stays glued to the end of the text, dimmed like `https://` |
 
 ## React page
 

@@ -135,15 +135,15 @@ test('jumping to the start reveals the prefix', async ({ page }) => {
   await expect.poll(() => page.locator('#prefixed').evaluate((host) => host.scrollLeft)).toBe(0);
 });
 
-test('a prefix wider than the field stops the caret at the middle', async ({ page }) => {
+test('a prefix wider than the field stops the caret a third of the way across', async ({ page }) => {
   await focusAt(page, 'long-prefix', 'end');
   await page.keyboard.press(LINE_START);
-  const distanceFromMiddle = () => page.evaluate(() => {
+  const distanceFromThird = () => page.evaluate(() => {
     const host = document.getElementById('long-prefix')!;
     const input = host.querySelector('input')!;
-    return Math.abs(input.getBoundingClientRect().left - host.getBoundingClientRect().left - host.clientWidth / 2);
+    return Math.abs(input.getBoundingClientRect().left - host.getBoundingClientRect().left - host.clientWidth / 3);
   });
-  await expect.poll(distanceFromMiddle).toBeLessThanOrEqual(2); // WebKit snaps scrollLeft to whole pixels
+  await expect.poll(distanceFromThird).toBeLessThanOrEqual(2); // WebKit snaps scrollLeft to whole pixels
   expect(await page.locator('#long-prefix').evaluate((host) => host.scrollLeft)).toBeGreaterThan(0);
 });
 

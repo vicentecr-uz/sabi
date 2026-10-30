@@ -27,7 +27,7 @@ import Docs from '../layouts/Docs.astro';
     <li>The input grows to the exact width of its text and sits inside its own scrolling strip, so the strip, not the input, decides what's visible.</li>
     <li>Where is the caret? Measure the text before it with a hidden copy in the same font.</li>
     <li>Keep the caret at least <code>fade width − caret penetration</code> (22 − 4 = 18px) from a faded edge. At the very start or end, scroll fully, so nothing is faded where the caret is.</li>
-    <li>Jumping to the start shows the prefix, but a prefix wider than half the field never pushes the caret past the middle.</li>
+    <li>Jumping to the start shows the prefix, but a long prefix never pushes the caret more than a third of the way across.</li>
   </ul>
 
   <h2>Fades that follow the scroll</h2>
