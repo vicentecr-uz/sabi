@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sabi fixtures</title>
+    <style>
+      body { font: 16px/1.4 system-ui, sans-serif; margin: 40px; background: #fff; color: #111; }
+      .box { width: 240px; margin-bottom: 16px; padding-block: 8px; border-radius: 8px; background: #f2f2f2; }
+      .box:focus-within { box-shadow: 0 0 0 2px #111; }
+      .box input { outline: none; }
+    </style>
+    <script type="module" src="/packages/sabi-input/dist/index.js"></script>
+  </head>
+  <body>
+    <div class="box">
+      <sabi-input id="plain">
+        <input aria-label="Plain" value="The quick brown fox jumps over the lazy dog while the cat watches 👍🏽 from afar" />
+      </sabi-input>
+    </div>
+    <div class="box">
+      <sabi-input id="prefixed" prefix="https://">
+        <input aria-label="URL" value="example.com/a/very/long/path/that/keeps/going/and/going" />
+      </sabi-input>
+    </div>
+    <div class="box">
+      <sabi-input id="long-prefix" prefix="https://a-very-long-prefix-that-is-wider-than-the-field.example/">
+        <input aria-label="Long prefix" value="path/that/keeps/going/and/going/and/going" />
+      </sabi-input>
+    </div>
+    <div class="box">
+      <sabi-input id="trailed">
+        <input aria-label="Slug" value="short" />
+        <span id="trail">.md</span>
+      </sabi-input>
+    </div>
+    <form id="form" class="box">
+      <sabi-input id="resettable">
+        <input aria-label="Resettable" value="short" />
+      </sabi-input>
+    </form>
+  </body>
+</html>

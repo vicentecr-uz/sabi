@@ -1,0 +1,61 @@
+@layer sabi {
+  /* The element is the scrolling text strip, not the field box: the mask fades
+     everything it paints, so put backgrounds, borders and focus rings on a parent. */
+  sabi-input {
+    --sabi-fade-width: 22px;
+    --sabi-fade-solid: 8px;
+    --sabi-caret-penetration: 4px;
+    --sabi-edge-gutter: 8px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding-inline: var(--sabi-edge-gutter);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    scroll-padding-inline: calc(var(--sabi-fade-width) - var(--sabi-caret-penetration));
+    cursor: text;
+    mask-image: linear-gradient(
+      to right,
+      transparent calc(var(--sabi-fade-solid) * var(--sabi-fade-left-progress, 0)),
+      #000 calc(var(--sabi-fade-width) * var(--sabi-fade-left-progress, 0)),
+      #000 calc(100% - var(--sabi-fade-width) * var(--sabi-fade-right-progress, 0)),
+      transparent calc(100% - var(--sabi-fade-solid) * var(--sabi-fade-right-progress, 0))
+    );
+  }
+
+  sabi-input::-webkit-scrollbar {
+    display: none;
+  }
+
+  sabi-input[prefix]::before {
+    content: attr(prefix);
+    flex: none;
+    white-space: pre;
+    opacity: 0.5;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  sabi-input > input {
+    flex: none;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+  }
+
+  sabi-input[data-caret-hidden] > input {
+    caret-color: transparent;
+  }
+
+  sabi-input > :not(input) {
+    flex: none;
+    white-space: pre;
+  }
+}

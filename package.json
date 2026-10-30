@@ -1,0 +1,17 @@
+{
+  "name": "sabi",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "site"
+  ],
+  "scripts": {
+    "build": "bun --filter sabi-input build",
+    "test": "playwright test",
+    "dev": "bun run build && bun --filter site dev"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}
