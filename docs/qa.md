@@ -35,7 +35,7 @@ Each step: **do** → **expect**. Anything else is a bug.
 | Type `abc` into Controlled | value `"abc"`, onChange `3` |
 | Type until the text passes the right edge | Every keystroke appears; onChange keeps counting one per key; fade left turns on |
 | Fill | The field shows the long URL; fade right `on` |
-| Click the field, Cmd+→, Backspace × 5 | Five characters gone, onChange `5`; nothing reappears |
+| Click the field, Cmd+→, Backspace × 5 | Five characters gone, onChange goes up by 5; nothing reappears |
 | Clear | The field empties; both fades `off` |
 | Remount: Unmount, Mount, three times | mounts counts up; after each Mount, fade right `on` and the field still scrolls |
 | Suffix: type, then Swap suffix | gap stays at about `0.0px`; the suffix follows the text |
