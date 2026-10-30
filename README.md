@@ -1,6 +1,6 @@
 # Sabi
 
-A text input whose overflowing edges fade, with the caret always kept clear of the fade. *Sabi* is Tagalog for "to say" or "to tell".
+A text input whose overflowing edges fade, with the caret always kept clear of the fade.
 
 ```bash
 npm i sabi-input
