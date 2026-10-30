@@ -1,0 +1,37 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  code: string;
+  lang?: 'html' | 'css' | 'tsx';
+}
+
+// One source for both: the preview renders exactly the code shown under it.
+const { code, lang = 'html' } = Astro.props;
+---
+
+<figure class="demo">
+  <div class="demo-preview" set:html={code} />
+  <Code code={code.trim()} lang={lang} themes={{ light: 'github-light', dark: 'github-dark' }} defaultColor={false} />
+</figure>
+
+<style>
+  .demo {
+    margin: 0 0 1.5em;
+  }
+
+  .demo-preview {
+    display: grid;
+    place-items: center;
+    min-height: 8em;
+    padding: 2em 1em;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 0.5em 0.5em 0 0;
+  }
+
+  .demo :global(.astro-code) {
+    margin: 0;
+    border-radius: 0 0 0.5em 0.5em;
+  }
+</style>

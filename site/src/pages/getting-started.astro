@@ -1,0 +1,35 @@
+---
+import { Code } from 'astro:components';
+import Docs from '../layouts/Docs.astro';
+import Demo from '../components/Demo.astro';
+import prefix from '../demos/prefix.html?raw';
+import suffix from '../demos/suffix.html?raw';
+import box from '../demos/box.css?raw';
+import react from '../demos/react.tsx?raw';
+
+const themes = { light: 'github-light', dark: 'github-dark' } as const;
+---
+
+<Docs title="Getting started">
+  <h2>Install</h2>
+  <Code code="npm install sabi-input" lang="bash" themes={themes} defaultColor={false} />
+
+  <h2>Add it</h2>
+  <p>Import it once, anywhere in your app. That registers <code>&lt;sabi-input&gt;</code> and adds its styles. Then wrap any text <code>&lt;input&gt;</code> with it.</p>
+  <Code code="import 'sabi-input';" lang="js" themes={themes} defaultColor={false} />
+  <Demo code={prefix} />
+  <p>The input stays yours: its value, its events and form submission work as they would without Sabi.</p>
+
+  <h2>Style the box on a parent</h2>
+  <p><code>&lt;sabi-input&gt;</code> is the strip of text that scrolls, not the field around it. The fade is a mask, and a mask fades everything the element paints, so a background or border on the element itself would fade too. Put those on a parent, along with the focus style.</p>
+  <Code code={box.trim()} lang="css" themes={themes} defaultColor={false} />
+
+  <h2>Prefix and suffix</h2>
+  <p>An element before the input is a prefix. It is dimmed, and clicking it focuses the input. An element after the input follows the end of the text as you type.</p>
+  <Demo code={suffix} />
+
+  <h2>React</h2>
+  <p>Works with controlled inputs. In TypeScript, the <code>sabi-input/react</code> import lets <code>&lt;sabi-input&gt;</code> type-check in JSX; add it once.</p>
+  <Code code={react.trim()} lang="tsx" themes={themes} defaultColor={false} />
+  <p>Importing on the server, as Next.js and other server renderers do, is safe: the element is registered in the browser.</p>
+</Docs>

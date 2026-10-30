@@ -201,3 +201,28 @@ test('clicking the empty strip focuses the input at the end', async ({ page }) =
   expect(state.focused).toBe(true);
   expect(state.caret).toBe(state.length);
 });
+
+test('clicking the prefix focuses the input', async ({ page }) => {
+  // A real mouse click at the prefix: Playwright's locator.click() refuses pointer-events: none.
+  const box = (await page.locator('#prefixed > span').boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.locator('#prefixed input')).toBeFocused();
+});
+
+test('the input submits with its form', async ({ page }) => {
+  const value = await page.locator('#form').evaluate((form: HTMLFormElement) => {
+    form.querySelector('input')!.name = 'title';
+    return new FormData(form).get('title');
+  });
+  expect(value).toBe('short');
+});
+
+test('core registers nothing until define() is called', async ({ page }) => {
+  const state = await page.evaluate(async () => {
+    const { define } = await import('/packages/sabi-input/dist/core.js');
+    const before = Boolean(customElements.get('sabi-core-check'));
+    define('sabi-core-check');
+    return { before, after: Boolean(customElements.get('sabi-core-check')) };
+  });
+  expect(state).toEqual({ before: false, after: true });
+});
