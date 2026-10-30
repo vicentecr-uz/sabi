@@ -1,32 +1,22 @@
 ---
+import Docs from '../layouts/Docs.astro';
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sabi</title>
-    <style>
-      :root { color-scheme: light dark; --surface: light-dark(#f2f2f2, #222); }
-      body { margin: 0; min-height: 100vh; display: grid; place-content: center; gap: 1em; font: 16px/1.4 system-ui, sans-serif; }
-      h1 { margin: 0; font-size: 1em; font-weight: 600; letter-spacing: -0.01em; }
-      .field { width: 280px; padding-block: 0.5em; border-radius: 0.5em; background: var(--surface); }
-      .field:focus-within { box-shadow: 0 0 0 2px currentColor; }
-      .field input { outline: none; }
-      code { font-size: 0.875em; opacity: 0.6; }
-    </style>
-  </head>
-  <body>
-    <h1>Sabi</h1>
-    <label class="field">
-      <sabi-input>
-        <span>https://</span>
-        <input aria-label="URL" value="example.com/a/long/path/that/runs/past/the/edge/of/the/field" />
-      </sabi-input>
-    </label>
-    <code>npm i sabi-input</code>
-    <script>
-      import 'sabi-input';
-    </script>
-  </body>
-</html>
+<Docs>
+  <h1>Sabi</h1>
+  <p>A text input whose overflowing edges fade, with the caret always kept in view.</p>
+  <label class="field hero">
+    <sabi-input>
+      <span>https://</span>
+      <input aria-label="URL" value="example.com/a/long/path/that/runs/past/the/edge/of/the/field" />
+    </sabi-input>
+  </label>
+  <p><code>npm install sabi-input</code></p>
+  <p><a href="/getting-started">Getting started</a></p>
+</Docs>
+
+<style>
+  .hero {
+    margin-block: 2em;
+  }
+</style>

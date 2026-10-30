@@ -1,0 +1,43 @@
+---
+import { Code } from 'astro:components';
+import Docs from '../layouts/Docs.astro';
+import Demo from '../components/Demo.astro';
+import fadeWidth from '../demos/fade-width.html?raw';
+import prefixStyle from '../demos/prefix-style.html?raw';
+
+const themes = { light: 'github-light', dark: 'github-dark' } as const;
+const variables = [
+  ['--sabi-fade-width', '22px', 'How far each fade reaches into the field.'],
+  ['--sabi-fade-solid', '8px', 'The part of the fade, at the very edge, that is fully hidden.'],
+  ['--sabi-caret-penetration', '4px', 'How far the caret may enter a fade before the text scrolls.'],
+  ['--sabi-edge-gutter', '8px', 'Space between the text and the edges when nothing is hidden.'],
+];
+---
+
+<Docs title="Styling">
+  <h2>Variables</h2>
+  <p>Set these on <code>sabi-input</code> or any ancestor.</p>
+  <table>
+    <thead>
+      <tr><th>Variable</th><th>Default</th><th></th></tr>
+    </thead>
+    <tbody>
+      {variables.map(([name, value, description]) => (
+        <tr><td><code>{name}</code></td><td><code>{value}</code></td><td>{description}</td></tr>
+      ))}
+    </tbody>
+  </table>
+  <Demo code={fadeWidth} />
+
+  <h2>Prefix</h2>
+  <p>The prefix is your own element, so it takes any style. It is dimmed by default.</p>
+  <Demo code={prefixStyle} />
+
+  <h2>Your rules win</h2>
+  <p>Sabi's styles sit in a cascade layer named <code>sabi</code>, so any rule of yours overrides them without a specificity fight.</p>
+  <p>To ship the CSS yourself, for example under a strict content security policy, import the element without its styles and load the stylesheet your own way:</p>
+  <Code code={`import { define } from 'sabi-input/core';\nimport 'sabi-input/styles.css';\n\ndefine();`} lang="js" themes={themes} defaultColor={false} />
+
+  <h2>Fade state</h2>
+  <p>While text is hidden on a side, the element has <code>data-fade-left</code> or <code>data-fade-right</code>. Use them to style anything else that should react, such as the field around it.</p>
+</Docs>

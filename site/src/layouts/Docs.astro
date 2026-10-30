@@ -1,0 +1,175 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+const pages = [
+  { href: '/', label: 'Sabi' },
+  { href: '/getting-started', label: 'Getting started' },
+  { href: '/styling', label: 'Styling' },
+  { href: '/how-it-works', label: 'How it works' },
+];
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>{title ? `${title} · Sabi` : 'Sabi'}</title>
+  </head>
+  <body>
+    <nav>
+      {pages.map(({ href, label }) => (
+        <a href={href} aria-current={path === href ? 'page' : undefined}>{label}</a>
+      ))}
+    </nav>
+    <main>
+      {title && <h1>{title}</h1>}
+      <slot />
+    </main>
+    <script>
+      import 'sabi-input';
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: light dark;
+    --text: light-dark(#111, #eee);
+    --muted: light-dark(#6b6b6b, #9a9a9a);
+    --surface: light-dark(#f2f2f2, #222);
+    --line: light-dark(#e6e6e6, #2c2c2c);
+    --bg: light-dark(#fff, #111);
+  }
+
+  body {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2em;
+    padding: 2em 1em;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, sans-serif;
+  }
+
+  @media (min-width: 52em) {
+    body {
+      grid-template-columns: 12em minmax(0, 40em);
+      justify-content: center;
+      padding-block: 4em;
+    }
+
+    nav {
+      position: sticky;
+      top: 4em;
+      align-self: start;
+      flex-direction: column;
+    }
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em 1em;
+    font-size: 0.875em;
+  }
+
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  nav a[aria-current='page'],
+  nav a:hover {
+    color: var(--text);
+  }
+
+  h1,
+  h2 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    margin-bottom: 1em;
+  }
+
+  h2 {
+    margin-top: 2.5em;
+    margin-bottom: 0.5em;
+  }
+
+  p {
+    margin: 0 0 1em;
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+
+  code {
+    font: 0.875em/1.6 ui-monospace, monospace;
+  }
+
+  .astro-code {
+    margin: 0 0 1em;
+    padding: 1em;
+    border-radius: 0.5em;
+    border: 1px solid var(--line);
+    background: var(--bg) !important;
+    font-size: 0.875em;
+  }
+
+  .astro-code span {
+    color: light-dark(var(--shiki-light), var(--shiki-dark));
+  }
+
+  .field {
+    display: block;
+    width: 18em;
+    max-width: 100%;
+    padding-block: 0.5em;
+    border-radius: 0.5em;
+    background: var(--surface);
+  }
+
+  .field:focus-within {
+    box-shadow: 0 0 0 2px var(--text);
+  }
+
+  .field input {
+    outline: none;
+  }
+
+  table {
+    width: 100%;
+    margin-bottom: 1em;
+    border-collapse: collapse;
+    font-size: 0.875em;
+  }
+
+  th,
+  td {
+    padding: 0.5em 1.5em 0.5em 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  td:has(> code) {
+    white-space: nowrap;
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--muted);
+  }
+</style>

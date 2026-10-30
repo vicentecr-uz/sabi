@@ -1,0 +1,15 @@
+.field {
+  display: block;
+  width: 18em;
+  padding-block: 0.5em;
+  border-radius: 0.5em;
+  background: #f2f2f2;
+}
+
+.field:focus-within {
+  box-shadow: 0 0 0 2px #111;
+}
+
+.field input {
+  outline: none;
+}

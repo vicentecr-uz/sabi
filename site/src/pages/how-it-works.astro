@@ -1,0 +1,84 @@
+---
+import Docs from '../layouts/Docs.astro';
+---
+
+<!-- Outline for the write-up. Each section is notes and verified facts to write
+     from, not finished copy. Replace the lists with prose. -->
+<Docs title="How it works">
+  <p class="draft">Draft outline</p>
+
+  <h2>The problem</h2>
+  <ul>
+    <li>Fading the edges of a field hints that there's more text, softer than a hard cut.</li>
+    <li>On a text input, the browser scrolls the caret flush against the edge as you type, so it lands right under the fade.</li>
+    <li>CSS has nothing to stop that: you can't tell an input to keep its caret clear of the edge.</li>
+  </ul>
+
+  <h2>What exists already</h2>
+  <ul>
+    <li>Fading a scrolling container's edges is well known: Chrome's "soft edge content fade" guide, tw-fade, ngrok's scroll-fade.</li>
+    <li>The CSS-only versions rely on scroll-driven animations, which Firefox hasn't shipped. In Zen (Firefox), tw-fade's blur and ngrok's fades don't appear.</li>
+    <li>CSS once proposed <code>text-overflow: fade</code> (2015 draft). Browsers never built it.</li>
+    <li>None of them handle a caret.</li>
+  </ul>
+
+  <h2>Taking over the scroll</h2>
+  <ul>
+    <li>The input grows to the exact width of its text and sits inside its own scrolling strip, so the strip, not the input, decides what's visible.</li>
+    <li>Where is the caret? Measure the text before it with a hidden copy in the same font.</li>
+    <li>Keep the caret at least <code>fade width − caret penetration</code> (22 − 4 = 18px) from a faded edge. At the very start or end, scroll fully, so nothing is faded where the caret is.</li>
+    <li>Jumping to the start shows the prefix, but a prefix wider than half the field never pushes the caret past the middle.</li>
+  </ul>
+
+  <h2>Fades that follow the scroll</h2>
+  <ul>
+    <li>First version: a 150ms fade-in when text became hidden. After a jump, the far edge showed unfaded text for 2–3 frames.</li>
+    <li>Now each fade's strength is how much text is hidden on that side, reaching full strength at 22px. It changes in the same frame as the scroll, so there's nothing to catch up, and slow trackpad scrolling still looks smooth.</li>
+    <li>It's a mask on the strip, so it works on any background with no colour to configure. Driven by JavaScript, so it works in Firefox too.</li>
+  </ul>
+
+  <h2>Arrow keys without taking them over</h2>
+  <ul>
+    <li>The version on my site moved the caret itself (~120 lines): correcting after the browser moved it showed a one-frame jump.</li>
+    <li>Taking over arrow keys means re-implementing emoji, right-to-left text, word jumps and Chinese/Japanese input.</li>
+    <li>Sabi lets the browser move the caret, then corrects the scroll in the next animation frame, which runs before the screen is drawn.</li>
+    <li>Evidence, from the tests in Chromium, Firefox and WebKit:
+      <ul>
+        <li>No correction at all: the caret is drawn under the fade.</li>
+        <li>Correcting on <code>selectionchange</code> (the original approach): fails, the correction lands after paint, which is the original jump.</li>
+        <li>Correcting in the next frame after the key press: passes in all three.</li>
+        <li>CSS <code>scroll-padding</code> on the strip: also passes, because the browser's own caret scrolling respects it. Sabi uses both.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Working with React</h2>
+  <ul>
+    <li><code>prefix</code> as an attribute crashed React 19: every DOM element already has a read-only <code>prefix</code> property, and React 19 sets custom-element props as properties. The prefix became the element before the input, matching the suffix after it.</li>
+    <li>React could lose keystrokes (~1 in 5 Backspaces): Sabi updated its attributes mid-event, something watching them re-rendered React, and React wrote the old value back before seeing the edit. Sabi now waits for the next frame before touching the page.</li>
+    <li>Importing on a server crashed (no <code>HTMLElement</code> there). Now safe.</li>
+  </ul>
+
+  <h2>How it's tested</h2>
+  <ul>
+    <li>Playwright drives Chromium, Firefox and WebKit.</li>
+    <li>To catch a one-frame flash, a probe reads the caret and fades at the very end of each frame, just before it's drawn.</li>
+    <li>Every test is also run against deliberately broken code to prove it can fail. That caught tests that were passing without testing anything.</li>
+  </ul>
+</Docs>
+
+<style>
+  .draft {
+    color: var(--muted);
+    font-size: 0.875em;
+  }
+
+  ul {
+    margin: 0 0 1em;
+    padding-left: 1.25em;
+  }
+
+  li {
+    margin-bottom: 0.25em;
+  }
+</style>
