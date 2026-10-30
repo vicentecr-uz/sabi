@@ -55,6 +55,10 @@
     margin-inline-start: -2px;
   }
 
+  sabi-input > input ~ * {
+    opacity: 0.5;
+  }
+
   /* Anything before the input is a prefix; clicks fall through to the strip. */
   sabi-input > :has(~ input) {
     opacity: 0.5;

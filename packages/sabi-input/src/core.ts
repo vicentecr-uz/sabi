@@ -152,8 +152,8 @@ export class SabiInput extends Base {
       if (reveal) {
         if (collapsed && offset === input.value.length) this.scrollLeft = maxScroll;
         // At the start, show what's before the text (padding, prefix), but never
-        // let a long prefix push the caret past the middle of the strip.
-        else if (collapsed && offset === 0) this.scrollLeft = Math.max(0, caretX - this.clientWidth / 2);
+        // let a long prefix push the caret past a third of the way across the strip.
+        else if (collapsed && offset === 0) this.scrollLeft = Math.max(0, caretX - this.clientWidth / 3);
         else if (caretX - this.scrollLeft < safeInset) this.scrollLeft = Math.max(0, caretX - safeInset);
         else if (caretX - this.scrollLeft > this.clientWidth - safeInset) {
           this.scrollLeft = Math.min(maxScroll, caretX - this.clientWidth + safeInset);
