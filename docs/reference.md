@@ -15,6 +15,8 @@ The field follows its direction: `dir="rtl"` on `<sabi-input>` or any ancestor s
 
 Mixed-direction text (Hebrew or Arabic with numbers, English names, URLs) is supported: Sabi reads where the caret is from the laid-out text instead of measuring the text before it. Where runs of each direction meet, one caret position has two places on screen; browsers draw the caret beside the character running in the field's direction, and Sabi keeps that one clear.
 
+Sabi never moves the caret. Arrow keys belong to the browser, so in mixed Hebrew and English text the caret moves the way it does in any other field in that browser: by screen side in Safari and Firefox, and in reading order in Chrome and Edge, where it jumps to the far end of an English word and walks back through it. Sabi keeps it in view either way.
+
 ## React + TypeScript
 
 Add once so `<sabi-input>` type-checks in JSX:

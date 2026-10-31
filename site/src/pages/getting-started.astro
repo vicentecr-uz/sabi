@@ -32,6 +32,7 @@ const themes = { light: 'github-light', dark: 'github-dark' } as const;
   <h2>Right-to-left</h2>
   <p>Sabi follows the field's direction: set <code>dir="rtl"</code> on <code>&lt;sabi-input&gt;</code> or any parent, and the text starts on the right, the prefix sits on the right and the suffix follows the end of the text on the left. For text whose direction you don't know in advance, put <code>dir="auto"</code> on the input: the field then takes the direction of whatever is typed. Text that mixes directions, like Hebrew with numbers or English names, keeps its caret clear of the fades too.</p>
   <Demo code={rtl} />
+  <p>Sabi never moves the caret. Arrow keys belong to the browser, so in mixed Hebrew and English text the caret moves the way it does in any other field in that browser: by screen side in Safari and Firefox, and in reading order in Chrome and Edge, where it jumps to the far end of an English word and walks back through it. Sabi keeps it in view either way.</p>
 
   <h2>React</h2>
   <p>Works with controlled inputs. In TypeScript, the <code>sabi-input/react</code> import lets <code>&lt;sabi-input&gt;</code> type-check in JSX; add it once.</p>
