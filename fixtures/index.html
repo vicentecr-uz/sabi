@@ -43,5 +43,41 @@
         <input aria-label="Resettable" value="short" />
       </sabi-input>
     </form>
+
+    <h2>Right-to-left</h2>
+    <div class="box" dir="rtl">
+      <sabi-input id="rtl">
+        <input aria-label="Hebrew" value="השועל החום המהיר קופץ מעל הכלב העצלן בזמן שהחתול צופה מרחוק ושותה תה" />
+      </sabi-input>
+    </div>
+    <div class="box" dir="rtl">
+      <sabi-input id="rtl-prefixed">
+        <span>بحث:</span>
+        <input aria-label="Arabic" value="الثعلب البني السريع يقفز فوق الكلب الكسول بينما تراقب القطة من بعيد" />
+      </sabi-input>
+    </div>
+    <div class="box" dir="rtl">
+      <sabi-input id="rtl-long-prefix">
+        <span>קידומת ארוכה מאוד שרחבה יותר מהשדה עצמו ועוד קצת:</span>
+        <input aria-label="Long prefix (RTL)" value="ערך שממשיך וממשיך וממשיך וממשיך הלאה" />
+      </sabi-input>
+    </div>
+    <div class="box" dir="rtl">
+      <sabi-input id="rtl-trailed">
+        <input aria-label="Slug (RTL)" value="קצר" />
+        <span id="rtl-trail">.md</span>
+      </sabi-input>
+    </div>
+    <!-- Mixed runs: the caret's place on screen no longer follows its place in the text. -->
+    <div class="box" dir="rtl" data-probe="range">
+      <sabi-input id="mixed">
+        <input aria-label="Mixed" value="הזמנה מספר 48213 עבור Acme Corporation Ltd נשלחה ל-London ב-31 באוקטובר 2026" />
+      </sabi-input>
+    </div>
+    <div class="box">
+      <sabi-input id="auto">
+        <input aria-label="Auto direction" dir="auto" value="שלום עולם, זה טקסט ארוך מספיק כדי לגלוש מעבר לקצה השדה" />
+      </sabi-input>
+    </div>
   </body>
 </html>

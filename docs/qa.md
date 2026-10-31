@@ -29,6 +29,22 @@ Each step: **do** → **expect**. Anything else is a bug.
 | Click the empty space to the right of `short.md` | Focus with the caret at the end |
 | Type in the `.md` field | `.md` stays glued to the end of the text, dimmed like `https://` |
 
+## Right-to-left (plain page, below the left-to-right fields)
+
+Arrow keys move visually in some browsers and by text order in others; either is fine, the caret just has to stay clear of the fades.
+
+| Do | Expect |
+| --- | --- |
+| Hebrew field at rest | The text starts on the right; the left edge fades, the right is crisp |
+| Click at the end (the left) and type | The text scrolls right; the caret never sits under the right fade; the left edge is crisp |
+| Hold → from the end | The caret walks to the start; the text scrolls before the caret reaches the fade |
+| Arabic field: Cmd+← and Cmd+→ (or Home/End) | Jumps between the ends, `بحث:` visible at the start on the right, no flash of an unfaded edge |
+| Long-prefix field: jump to the start | The caret stops a third of the way in from the right; the prefix is cut off on the right |
+| `קצר.md`: type | `.md` stays glued to the end of the text, on its left |
+| Mixed field: hold ← then → across the whole value | The caret crosses the numbers and English words without ever sitting under a fade, including where the direction changes |
+| Auto field: select all, type English | The field flips to left-to-right: text starts on the left, the right edge fades |
+| iPhone: tap into the Hebrew and mixed fields, drag the caret to each edge, double-tap a word | Same as the left-to-right iPhone rows, mirrored |
+
 ## React page
 
 | Do | Expect |
