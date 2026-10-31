@@ -42,6 +42,8 @@ Arrow keys move visually in some browsers and by text order in others; either is
 | Long-prefix field: jump to the start | The caret stops a third of the way in from the right; the prefix is cut off on the right |
 | `קצר.md`: type | `.md` stays glued to the end of the text, on its left |
 | Mixed field: hold ← then → across the whole value | The caret crosses the numbers and English words without ever sitting under a fade, including where the direction changes |
+| Mixed field: Option+← from the start, then Option+→ back | The caret stays visible at every word, including the ends of `London` and `31` |
+| Mixed field: ← from the start, one press at a time | Stepping into `Acme Corporation Ltd` and `London`, the text scrolls a character at a time, as in a left-to-right field. In Edge the caret jumps to the far end of each word and walks back through it; a plain input does the same |
 | Auto field: select all, type English | The field flips to left-to-right: text starts on the left, the right edge fades |
 | iPhone: tap into the Hebrew and mixed fields, drag the caret to each edge, double-tap a word | Same as the left-to-right iPhone rows, mirrored |
 
