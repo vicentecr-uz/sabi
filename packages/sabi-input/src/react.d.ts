@@ -1,5 +1,5 @@
 import type { DetailedHTMLProps, HTMLAttributes } from 'react';
-import type { SabiInput } from './core';
+import type { SabiInput } from './core.js';
 
 declare module 'react' {
   namespace JSX {

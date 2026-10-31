@@ -1,5 +1,5 @@
 import css from './styles.css' with { type: 'text' };
-import { define } from './core';
+import { define } from './core.js';
 
 if (typeof document !== 'undefined' && !document.querySelector('style[data-sabi-input]')) {
   const style = document.createElement('style');
@@ -10,4 +10,4 @@ if (typeof document !== 'undefined' && !document.querySelector('style[data-sabi-
 
 define();
 
-export { SabiInput, define } from './core';
+export { SabiInput, define } from './core.js';

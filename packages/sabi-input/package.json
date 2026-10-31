@@ -2,6 +2,13 @@
   "name": "sabi-input",
   "version": "0.0.0",
   "description": "A text input whose overflowing edges fade, with the caret always kept in view.",
+  "homepage": "https://sabi.vicentecr.uz",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vicentecr-uz/sabi.git",
+    "directory": "packages/sabi-input"
+  },
+  "bugs": "https://github.com/vicentecr-uz/sabi/issues",
   "type": "module",
   "exports": {
     ".": {
@@ -20,8 +27,14 @@
   "files": [
     "dist"
   ],
+  "sideEffects": [
+    "./dist/index.js",
+    "./dist/styles.css"
+  ],
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts src/core.ts --outdir dist --target browser --splitting && cp src/styles.css src/react.d.ts dist/ && tsc -p tsconfig.json"
+    "build": "rm -rf dist && bun build src/index.ts src/core.ts --outdir dist --target browser --splitting && cp src/styles.css src/react.d.ts dist/ && tsc -p tsconfig.json",
+    "prepack": "bun run build && cp ../../README.md ../../LICENSE .",
+    "postpack": "rm README.md LICENSE"
   },
   "keywords": [
     "input",

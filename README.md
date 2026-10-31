@@ -10,7 +10,7 @@ Install it in your project:
 npm install sabi-input
 ```
 
-Import it once to register `<sabi-input>`, then wrap any `<input>` with it. An element before the input becomes a prefix; one after it follows the end of the text.
+Import it once to register `<sabi-input>`, then wrap a text `<input>` with it (password and email fields stay plain). An element before the input becomes a prefix; one after it follows the end of the text.
 
 ```html
 <script type="module">import 'sabi-input';</script>

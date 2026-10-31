@@ -4,19 +4,20 @@ const TEXT_PROPERTIES = ['font', 'letterSpacing', 'wordSpacing', 'fontKerning', 
 // A hidden copy of the input's text, laid out the way the input lays it out,
 // including right-to-left and mixed-direction text (the mirror technique of
 // textarea-caret-position, with the caret read from a Range instead of a marker).
+// Fixed, so a long value can't widen the page, and emptied after each use, so the
+// text doesn't linger in the document.
 let mirror: HTMLSpanElement | null = null;
 
 const layout = (input: HTMLInputElement, text: string) => {
   if (!mirror?.isConnected) {
     mirror = document.createElement('span');
     mirror.setAttribute('aria-hidden', 'true');
-    mirror.style.cssText = 'position:absolute;top:0;left:0;visibility:hidden;white-space:pre;pointer-events:none;';
+    mirror.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;white-space:pre;pointer-events:none;';
     document.body.append(mirror);
   }
   const style = getComputedStyle(input);
   for (const property of TEXT_PROPERTIES) mirror.style[property] = style[property];
-  const content = text || '\u200b';
-  if (mirror.textContent !== content) mirror.textContent = content;
+  mirror.textContent = text || '\u200b';
   return mirror;
 };
 
@@ -47,7 +48,14 @@ const caretOffset = (input: HTMLInputElement, offset: number) => {
   if ('Segmenter' in Intl) for (const { index } of new Intl.Segmenter().segment(text)) starts.push(index);
   // Firefox before 125: whole code points, so only accents count apart.
   else for (let i = 0; i < text.length; i += text.codePointAt(i)! > 0xffff ? 2 : 1) starts.push(i);
-  const prev = (i: number) => Math.max(-1, ...starts.filter((start) => start < i));
+  const prev = (i: number) => {
+    let found = -1;
+    for (const start of starts) {
+      if (start >= i) break;
+      found = start;
+    }
+    return found;
+  };
   const next = (i: number) => starts.find((start) => start > i) ?? (i < text.length ? text.length : text.length + 1);
   const range = document.createRange();
   const char = (from: number, to: number) => {
@@ -92,8 +100,11 @@ const caretOffset = (input: HTMLInputElement, offset: number) => {
 // a pixel off where the text says it should; anything hidden within that is at the edge.
 const EDGE = 1;
 
-const length = (style: CSSStyleDeclaration, name: string, fallback: number) =>
-  Number.parseFloat(style.getPropertyValue(name)) || fallback;
+// In px; an unset property reads as empty and takes the default.
+const length = (style: CSSStyleDeclaration, name: string, fallback: number) => {
+  const value = Number.parseFloat(style.getPropertyValue(name));
+  return Number.isFinite(value) ? value : fallback;
+};
 
 // Server renderers import this module where HTMLElement doesn't exist.
 const Base = (globalThis.HTMLElement ?? class {}) as typeof HTMLElement;
@@ -101,6 +112,7 @@ const Base = (globalThis.HTMLElement ?? class {}) as typeof HTMLElement;
 export class SabiInput extends Base {
   #input: HTMLInputElement | null = null;
   #controller: AbortController | null = null;
+  #inputController: AbortController | null = null;
   #frame = 0;
   #reveal = false;
   #anchor: number | null = null;
@@ -108,21 +120,35 @@ export class SabiInput extends Base {
   connectedCallback() {
     this.#controller = new AbortController();
     const { signal } = this.#controller;
-    const input = this.querySelector('input');
-    if (input) return this.#attach(input, signal);
-    // The element can be defined before its children are parsed.
-    const observer = new MutationObserver(() => {
-      const found = this.querySelector('input');
-      if (!found) return;
-      observer.disconnect();
-      this.#attach(found, signal);
-    });
-    observer.observe(this, { childList: true, subtree: true });
+    // Children can arrive after the element is defined, and frameworks swap the input
+    // or flip its `type` (a show-password toggle) or `dir`; follow all of it.
+    const observer = new MutationObserver(() => this.#bind());
+    observer.observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['type', 'dir'] });
     signal.addEventListener('abort', () => observer.disconnect());
+
+    this.addEventListener('click', (event) => {
+      const input = this.#input;
+      if (event.target !== this || !input || input.disabled) return;
+      input.focus();
+      if (this.#plain(input)) return;
+      input.setSelectionRange(input.value.length, input.value.length);
+      this.#syncNow(true);
+    }, { signal });
+    this.addEventListener('scroll', () => {
+      this.#syncFades(length(getComputedStyle(this), '--sabi-fade-width', 22));
+      this.#schedule(false);
+    }, { passive: true, signal });
+    const resizeObserver = new ResizeObserver(() => this.#schedule(document.activeElement === this.#input));
+    resizeObserver.observe(this);
+    signal.addEventListener('abort', () => resizeObserver.disconnect());
+    document.fonts?.addEventListener('loadingdone', () => this.#schedule(false), { signal });
+
+    this.#bind();
   }
 
   disconnectedCallback() {
     this.#controller?.abort();
+    this.#inputController?.abort();
     cancelAnimationFrame(this.#frame);
     this.#frame = 0;
     this.#input = null;
@@ -133,8 +159,26 @@ export class SabiInput extends Base {
     this.#schedule(document.activeElement === this.#input);
   }
 
+  #bind() {
+    const input = this.querySelector('input');
+    if (input !== this.#input) {
+      this.#inputController?.abort();
+      this.#input = input;
+      if (input) {
+        this.#inputController = new AbortController();
+        this.#attach(input, this.#inputController.signal);
+      }
+    }
+    this.#schedule(false);
+  }
+
+  // Password values are never copied into the page, and fields without a readable
+  // caret (`type="email"`, `number`) can't be followed: both stay a plain input.
+  #plain(input: HTMLInputElement) {
+    return input.type === 'password' || input.selectionStart === null;
+  }
+
   #attach(input: HTMLInputElement, signal: AbortSignal) {
-    this.#input = input;
     this.#watchValue(input, signal);
 
     // Deferred, not synchronous: writing to the DOM mid-event can trigger observers
@@ -157,24 +201,6 @@ export class SabiInput extends Base {
       if (document.activeElement === input) this.#schedule(input.selectionStart === input.selectionEnd);
     }, { signal });
     input.form?.addEventListener('reset', () => this.#schedule(false), { signal });
-
-    this.addEventListener('click', (event) => {
-      if (event.target !== this || input.disabled) return;
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-      this.#syncNow(true);
-    }, { signal });
-    this.addEventListener('scroll', () => {
-      this.#syncFades(length(getComputedStyle(this), '--sabi-fade-width', 22));
-      this.#schedule(false);
-    }, { passive: true, signal });
-
-    const resizeObserver = new ResizeObserver(() => this.#schedule(document.activeElement === input));
-    resizeObserver.observe(this);
-    signal.addEventListener('abort', () => resizeObserver.disconnect());
-    document.fonts?.addEventListener('loadingdone', () => this.#schedule(false), { signal });
-
-    this.#schedule(false);
   }
 
   // Assigning `input.value` fires no event, which is how React, Vue and form
@@ -216,6 +242,14 @@ export class SabiInput extends Base {
     this.#anchor = null;
     const input = this.#input;
     if (!input) return;
+    if (this.#plain(input)) {
+      // Fits the strip and scrolls itself, with nothing to fade.
+      input.style.width = '100%';
+      this.scrollLeft = 0;
+      this.#syncFades(length(getComputedStyle(this), '--sabi-fade-width', 22));
+      this.removeAttribute('data-caret-hidden');
+      return;
+    }
 
     // An input with its own `dir` (often `dir="auto"`, which follows what's typed) sets
     // the field's direction (styles.css), so prefix, suffix and scrolling mirror with it.
@@ -263,6 +297,7 @@ export class SabiInput extends Base {
         }
       }
     }
+    mirror!.textContent = '';
 
     const { leftProgress, rightProgress, scrollX } = this.#syncFades(fadeWidth);
 
@@ -314,9 +349,11 @@ export class SabiInput extends Base {
   }
 }
 
-export const define = (name = 'sabi-input') => {
-  if (typeof customElements === 'undefined' || customElements.get(name)) return;
-  customElements.define(name, class extends SabiInput {});
+// Without cascade layers (before Chrome 99, Firefox 97, Safari 15.4) the stylesheet
+// doesn't apply, so leave the input plain rather than half-enhanced.
+export const define = () => {
+  if (typeof customElements === 'undefined' || !('CSSLayerBlockRule' in globalThis) || customElements.get('sabi-input')) return;
+  customElements.define('sabi-input', SabiInput);
 };
 
 declare global {
