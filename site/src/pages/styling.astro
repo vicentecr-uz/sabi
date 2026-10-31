@@ -38,6 +38,9 @@ const variables = [
   <p>To ship the CSS yourself, for example under a strict content security policy, import the element without its styles and load the stylesheet your own way:</p>
   <Code code={`import { define } from 'sabi-input/core';\nimport 'sabi-input/styles.css';\n\ndefine();`} lang="js" themes={themes} defaultColor={false} />
 
+  <h2>iPhone selection handles</h2>
+  <p>iOS draws selection handles inside the text strip, so they are cut off at the edge of your field box, following its corners. iOS rounds that edge to whole pixels: if the box is a fractional height, such as <code>16px</code> text at a line height of <code>1.4</code>, a sliver shows between the handle and a focus ring. A line height in whole pixels, like <code>24px</code>, keeps them flush.</p>
+
   <h2>Fade state</h2>
   <p>While text is hidden on a side, the element has <code>data-fade-left</code> or <code>data-fade-right</code>. Use them to style anything else that should react, such as the field around it.</p>
 </Docs>

@@ -4,7 +4,7 @@ Source material for the Getting started and Styling pages until the docs site ha
 
 ## Markup
 
-`<sabi-input>` wraps your own `<input>`, so form submission and React's controlled inputs keep working. It is the scrolling text strip, not the field box: put backgrounds, borders and focus styles on a parent, because the fade masks everything the element paints. Put vertical padding on the element itself, so it fills the box: iOS clips selection handles to it. It inherits its parent's `border-radius`, so that clip matches the box's corners.
+`<sabi-input>` wraps your own `<input>`, so form submission and React's controlled inputs keep working. It is the scrolling text strip, not the field box: put backgrounds, borders and focus styles on a parent, because the fade masks everything the element paints. Put vertical padding on the element itself, so it fills the box: iOS clips selection handles to it. It inherits its parent's `border-radius`, so that clip matches the box's corners. iOS rounds the clip to whole pixels, so a box with a fractional height leaves a sliver between handle and focus ring; a whole-pixel line height avoids it.
 
 - An element before the input is a prefix. It is dimmed and clicks pass through it.
 - An element after the input (a suffix, a button) follows the end of the text. It is dimmed too.
