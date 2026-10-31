@@ -136,9 +136,12 @@ const path = Astro.url.pathname.replace(/\/$/, '') || '/';
     display: block;
     width: 18em;
     max-width: 100%;
-    padding-block: 0.5em;
     border-radius: 0.5em;
     background: var(--surface);
+  }
+
+  .field sabi-input {
+    padding-block: 0.5em;
   }
 
   .field:focus-within {

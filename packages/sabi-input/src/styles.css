@@ -11,17 +11,42 @@
     align-items: center;
     min-width: 0;
     padding-inline: var(--sabi-edge-gutter);
+    /* The strip clips what overflows it, iOS selection handles included; taking
+       the field box's corners makes that clip match the box. */
+    border-radius: inherit;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
     scroll-padding-inline: calc(var(--sabi-fade-width) - var(--sabi-caret-penetration));
     cursor: text;
+    /* iOS draws its tap flash over the whole input, overflow included, past the clip and fade. */
+    -webkit-tap-highlight-color: transparent;
+    /* Each fade runs from the fully hidden edge to full opacity, eased along a
+       smoothstep curve in eight steps, so it has no visible start or end. */
+    --_sabi-l0: calc(var(--sabi-fade-solid) * var(--sabi-fade-left-progress, 0));
+    --_sabi-ls: calc((var(--sabi-fade-width) - var(--sabi-fade-solid)) * var(--sabi-fade-left-progress, 0));
+    --_sabi-r0: calc(100% - var(--sabi-fade-solid) * var(--sabi-fade-right-progress, 0));
+    --_sabi-rs: calc((var(--sabi-fade-width) - var(--sabi-fade-solid)) * var(--sabi-fade-right-progress, 0));
     mask-image: linear-gradient(
       to right,
-      transparent calc(var(--sabi-fade-solid) * var(--sabi-fade-left-progress, 0)),
-      #000 calc(var(--sabi-fade-width) * var(--sabi-fade-left-progress, 0)),
-      #000 calc(100% - var(--sabi-fade-width) * var(--sabi-fade-right-progress, 0)),
-      transparent calc(100% - var(--sabi-fade-solid) * var(--sabi-fade-right-progress, 0))
+      rgb(0 0 0 / 0) var(--_sabi-l0),
+      rgb(0 0 0 / 0.043) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.125),
+      rgb(0 0 0 / 0.156) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.25),
+      rgb(0 0 0 / 0.316) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.375),
+      rgb(0 0 0 / 0.5) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.5),
+      rgb(0 0 0 / 0.684) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.625),
+      rgb(0 0 0 / 0.844) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.75),
+      rgb(0 0 0 / 0.957) calc(var(--_sabi-l0) + var(--_sabi-ls) * 0.875),
+      #000 calc(var(--_sabi-l0) + var(--_sabi-ls)),
+      #000 calc(var(--_sabi-r0) - var(--_sabi-rs)),
+      rgb(0 0 0 / 0.957) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.875),
+      rgb(0 0 0 / 0.844) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.75),
+      rgb(0 0 0 / 0.684) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.625),
+      rgb(0 0 0 / 0.5) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.5),
+      rgb(0 0 0 / 0.316) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.375),
+      rgb(0 0 0 / 0.156) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.25),
+      rgb(0 0 0 / 0.043) calc(var(--_sabi-r0) - var(--_sabi-rs) * 0.125),
+      rgb(0 0 0 / 0) var(--_sabi-r0)
     );
   }
 

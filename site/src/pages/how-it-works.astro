@@ -34,6 +34,15 @@ import Docs from '../layouts/Docs.astro';
   <ul>
     <li>First version: a 150ms fade-in when text became hidden. After a jump, the far edge showed unfaded text for 2–3 frames.</li>
     <li>Now each fade's strength is how much text is hidden on that side, reaching full strength at 22px. It changes in the same frame as the scroll, so there's nothing to catch up, and slow trackpad scrolling still looks smooth.</li>
+    <li>The fade is eased, not linear: a straight ramp shows a visible band where it starts and ends. Eight stops per side follow a smoothstep curve.</li>
+    <li>iOS selection handles: what was tried. Screenshots and demos of each still to make.
+      <ul>
+        <li>As is: iOS draws the handles inside the scrolling strip, so the strip clips them to the text line and the fade mask fades them.</li>
+        <li>Room above and below the strip, cancelled with a negative margin: handles fit, but their shadows still clip at the ends, and taps up to 16px outside the field land in it. Only while focused: same, smaller.</li>
+        <li>No scroll view (<code>overflow: hidden</code>): handles escape, but so does the selection highlight, past the field, and you can no longer swipe the field sideways.</li>
+        <li>Chosen: the strip fills the field box (vertical padding on the element), so handles are clipped exactly at the box edge and taps stay inside it. It inherits the box's <code>border-radius</code>, so the clip follows its rounded corners.</li>
+      </ul>
+    </li>
     <li>It's a mask on the strip, so it works on any background with no colour to configure. Driven by JavaScript, so it works in Firefox too.</li>
   </ul>
 
@@ -42,6 +51,8 @@ import Docs from '../layouts/Docs.astro';
     <li>The version on my site moved the caret itself (~120 lines): correcting after the browser moved it showed a one-frame jump.</li>
     <li>Taking over arrow keys means re-implementing emoji, right-to-left text, word jumps and Chinese/Japanese input.</li>
     <li>Sabi lets the browser move the caret, then corrects the scroll in the next animation frame, which runs before the screen is drawn.</li>
+    <li>Browsers disagree on where a revealed caret lands: Safari centres it, Chrome stops short of the edge. Sabi corrects from the scroll position before the key press, so a word jump into hidden text stops at the edge everywhere. Found in hands-on QA, not by the tests.</li>
+    <li>A caret scrolled into a fade with the trackpad stays drawn through the gradient and is hidden only in the fully faded edge, where the text is gone too.</li>
     <li>Evidence, from the tests in Chromium, Firefox and WebKit:
       <ul>
         <li>No correction at all: the caret is drawn under the fade.</li>

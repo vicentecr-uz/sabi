@@ -28,6 +28,7 @@ export class SabiInput extends Base {
   #controller: AbortController | null = null;
   #frame = 0;
   #reveal = false;
+  #anchor: number | null = null;
 
   connectedCallback() {
     this.#controller = new AbortController();
@@ -68,7 +69,11 @@ export class SabiInput extends Base {
     input.addEventListener('blur', () => this.#schedule(false), { signal });
     // The browser moves the caret right after keydown; correcting in the next
     // animation frame lands before paint, so the caret never shows under a fade.
+    // Safari centres a caret it scrolls into view; remember the settled scroll from
+    // before the key so the correction moves only as far as the caret needs, as elsewhere.
     input.addEventListener('keydown', (event) => {
+      if (this.#frame) this.#syncNow(false);
+      this.#anchor ??= this.scrollLeft;
       if (CARET_KEYS.has(event.key)) this.#schedule(true);
     }, { signal });
     document.addEventListener('selectionchange', () => {
@@ -130,6 +135,8 @@ export class SabiInput extends Base {
     this.#frame = 0;
     const reveal = this.#reveal;
     this.#reveal = false;
+    const anchor = this.#anchor;
+    this.#anchor = null;
     const input = this.#input;
     if (!input) return;
 
@@ -150,6 +157,7 @@ export class SabiInput extends Base {
       const offset = !collapsed && input.selectionDirection === 'backward' ? start : end;
       caretX = input.offsetLeft + measure(input, input.value.slice(0, offset));
       if (reveal) {
+        if (anchor !== null) this.scrollLeft = anchor;
         if (collapsed && offset === input.value.length) this.scrollLeft = maxScroll;
         // At the start, show what's before the text (padding, prefix), but never
         // let a long prefix push the caret past a third of the way across the strip.
@@ -161,13 +169,14 @@ export class SabiInput extends Base {
       }
     }
 
-    const { fadeLeft, fadeRight } = this.#syncFades(fadeWidth);
+    const { leftProgress, rightProgress } = this.#syncFades(fadeWidth);
 
-    // A caret scrolled under a fade by trackpad or wheel is hidden rather than half-drawn.
+    // A caret scrolled into a fade by trackpad or wheel stays drawn through the
+    // gradient and is hidden only where the text is fully faded out.
+    const solid = length(style, '--sabi-fade-solid', 8);
     const viewportX = caretX === null ? null : caretX - this.scrollLeft;
     this.toggleAttribute('data-caret-hidden', collapsed && viewportX !== null && (
-      viewportX < (fadeLeft ? safeInset : gutter) - 0.5
-      || viewportX > this.clientWidth - (fadeRight ? safeInset : gutter) + 0.5
+      viewportX < solid * leftProgress || viewportX > this.clientWidth - solid * rightProgress
     ));
   }
 
@@ -175,13 +184,13 @@ export class SabiInput extends Base {
   // lands in the same frame as any scroll, jump or not, with nothing to animate.
   #syncFades(fadeWidth: number) {
     const hiddenRight = Math.max(0, this.scrollWidth - this.clientWidth - this.scrollLeft);
-    this.style.setProperty('--sabi-fade-left-progress', String(Math.min(1, this.scrollLeft / fadeWidth)));
-    this.style.setProperty('--sabi-fade-right-progress', String(Math.min(1, hiddenRight / fadeWidth)));
-    const fadeLeft = this.scrollLeft > 0.5;
-    const fadeRight = hiddenRight > 0.5;
-    this.toggleAttribute('data-fade-left', fadeLeft);
-    this.toggleAttribute('data-fade-right', fadeRight);
-    return { fadeLeft, fadeRight };
+    const leftProgress = Math.min(1, this.scrollLeft / fadeWidth);
+    const rightProgress = Math.min(1, hiddenRight / fadeWidth);
+    this.style.setProperty('--sabi-fade-left-progress', String(leftProgress));
+    this.style.setProperty('--sabi-fade-right-progress', String(rightProgress));
+    this.toggleAttribute('data-fade-left', this.scrollLeft > 0.5);
+    this.toggleAttribute('data-fade-right', hiddenRight > 0.5);
+    return { leftProgress, rightProgress };
   }
 }
 
