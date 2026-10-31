@@ -18,6 +18,7 @@ import Docs from '../layouts/Docs.astro';
   <ul>
     <li>Fading a scrolling container's edges is well known: Chrome's "soft edge content fade" guide, tw-fade, ngrok's scroll-fade.</li>
     <li>The CSS-only versions rely on scroll-driven animations, which Firefox hasn't shipped. In Zen (Firefox), tw-fade's blur and ngrok's fades don't appear.</li>
+    <li>shadcn's <code>scroll-fade</code> is the most polished CSS-only version: a <code>mask-image</code> driven by scroll-driven animations, with logical start/end edges that mirror in right-to-left text. It's built for any scroll container (lists, cards, chat panes), not a text field. Without scroll-driven animations it falls back to a static fade on both edges. Check how that looks in Zen before publishing.</li>
     <li>CSS once proposed <code>text-overflow: fade</code> (2015 draft). Browsers never built it.</li>
     <li>None of them handle a caret.</li>
   </ul>
@@ -62,6 +63,19 @@ import Docs from '../layouts/Docs.astro';
         <li>CSS <code>scroll-padding</code> on the strip: also passes, because the browser's own caret scrolling respects it. Sabi uses both.</li>
       </ul>
     </li>
+  </ul>
+
+  <h2>Right-to-left</h2>
+  <ul>
+    <li>Approaches looked at before building: MUI's scrollLeft helper, textarea-caret-position's mirror, CodeMirror's bidi handling, shadcn's logical fade edges, the new <code>OpaqueRange</code> proposal.</li>
+    <li>Scrolling: right-to-left <code>scrollLeft</code> starts at 0 and goes negative. Browsers used to disagree (MUI shipped a detector for three behaviours); every current engine now follows the spec (Chrome since 85). Sabi converts to "px hidden past the left edge", as MUI does, so the scroll and fade maths didn't change.</li>
+    <li>The scroll range is rounded to whole pixels, and right-to-left Chrome can put it a pixel off where the text says (e.g. −402 to +1 instead of −403 to 0). Anything hidden within 1px counts as the edge.</li>
+    <li>Finding the caret: the first version added up the width of the text before it. That breaks with mixed text (Hebrew with numbers or English), where a caret's place on screen stops following its place in the text. Now a hidden copy of the text is laid out like the input, and the browser says where the caret is, via a collapsed <code>Range</code>.</li>
+    <li>Where runs meet, one caret position has two places on screen (end of one run, start of the other), and browsers differ on which they draw. CodeMirror solves this by running its own bidi algorithm, far too heavy here. Sabi keeps both places clear of the fades when they fit, otherwise the one next to the character before. Measuring the old way fails the mixed-text tests; keeping only one place clear fails them too.</li>
+    <li>Arrow keys still belong to the browser, which is why right-to-left needed no keyboard code at all.</li>
+    <li>Fades were already per physical side, driven by how much is hidden on each, so they carried over. Only "start" and "end" (scroll fully at the ends, the one-third rule for long prefixes) swap sides. <code>data-fade-start</code> and <code>data-fade-end</code> name the fades by reading direction, as shadcn's logical edges do.</li>
+    <li><code>dir="auto"</code> on the input: the field takes the input's direction, so a field flips as soon as someone types Hebrew or Arabic into it.</li>
+    <li>Later: <code>OpaqueRange</code> (Chromium, in origin trial) would read the caret straight from the real input, no copy needed.</li>
   </ul>
 
   <h2>Working with React</h2>

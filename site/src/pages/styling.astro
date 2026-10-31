@@ -42,5 +42,5 @@ const variables = [
   <p>iOS draws selection handles inside the text strip, so they are cut off at the edge of your field box, following its corners. iOS rounds that edge to whole pixels: if the box is a fractional height, such as <code>16px</code> text at a line height of <code>1.4</code>, a sliver shows between the handle and a focus ring. A line height in whole pixels, like <code>24px</code>, keeps them flush.</p>
 
   <h2>Fade state</h2>
-  <p>While text is hidden on a side, the element has <code>data-fade-left</code> or <code>data-fade-right</code>. Use them to style anything else that should react, such as the field around it.</p>
+  <p>While text is hidden on a side, the element has <code>data-fade-left</code> or <code>data-fade-right</code>. The same state is named by reading direction too, as <code>data-fade-start</code> and <code>data-fade-end</code>, which swap sides in right-to-left text. Use them to style anything else that should react, such as the field around it.</p>
 </Docs>
