@@ -41,6 +41,7 @@ import Docs from '../layouts/Docs.astro';
         <li>Room above and below the strip, cancelled with a negative margin: handles fit, but their shadows still clip at the ends, and taps up to 16px outside the field land in it. Only while focused: same, smaller.</li>
         <li>No scroll view (<code>overflow: hidden</code>): handles escape, but so does the selection highlight, past the field, and you can no longer swipe the field sideways.</li>
         <li>Chosen: the strip fills the field box (vertical padding on the element), so handles are clipped exactly at the box edge and taps stay inside it. It inherits the box's <code>border-radius</code>, so the clip follows its rounded corners.</li>
+        <li>One leftover: iOS rounds the clip to whole pixels, so a 38.4px field leaves a sliver between the bottom handle and the focus ring. Confirmed against a 40px field, which is flush. Fix in the design: whole-pixel line heights.</li>
       </ul>
     </li>
     <li>It's a mask on the strip, so it works on any background with no colour to configure. Driven by JavaScript, so it works in Firefox too.</li>

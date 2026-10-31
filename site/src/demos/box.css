@@ -12,7 +12,9 @@
 /* On the element, so the strip fills the box. It takes the box's corners too,
    so anything it clips, like iOS selection handles, is cut to the box's shape. */
 .field sabi-input {
-  padding-block: 0.5em;
+  padding-block: 8px;
+  /* Whole pixels, so iOS's pixel-rounded clip meets the focus ring exactly. */
+  line-height: 24px;
 }
 
 .field input {
