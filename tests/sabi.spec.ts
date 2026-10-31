@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-type Snapshot = { caretX: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number; hiddenRight: number; caret: number | null };
+type Snapshot = { caretX: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number; hiddenRight: number; caret: number | null; caretHidden: boolean };
 
 // Caret geometry measured independently of the element, at the end of each
 // rendering step (ResizeObserver runs after rAF and layout, right before paint).
@@ -24,6 +24,7 @@ const installProbe = (page: Page) => page.addInitScript(() => {
       rightProgress: Number(getComputedStyle(host).getPropertyValue('--sabi-fade-right-progress')),
       hiddenRight: host.scrollWidth - host.clientWidth - host.scrollLeft,
       caret: input.selectionStart,
+      caretHidden: host.hasAttribute('data-caret-hidden'),
     };
   };
   (window as any).__probe = (host: HTMLElement, frames: number) => {
@@ -53,6 +54,7 @@ const SAFE_INSET = 18; // fade width 22 − caret penetration 4
 const GUTTER = 8;
 
 const expectCaretClear = (s: Snapshot) => {
+  expect(s.caretHidden).toBe(false);
   expect(s.caretX).toBeGreaterThanOrEqual((s.fadeLeft ? SAFE_INSET : GUTTER) - 1);
   expect(s.caretX).toBeLessThanOrEqual(s.clientWidth - (s.fadeRight ? SAFE_INSET : GUTTER) + 1);
 };
@@ -81,6 +83,12 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => customElements.get('sabi-input'));
 });
 
+test('takes the field box\'s corners, so its clip matches the box', async ({ page }) => {
+  const radii = await page.locator('#plain').evaluate((host) => [getComputedStyle(host).borderTopLeftRadius, getComputedStyle(host.parentElement!).borderTopLeftRadius]);
+  expect(radii[0]).toBe(radii[1]);
+  expect(radii[0]).toBe('8px');
+});
+
 test('fades the edges that have hidden text', async ({ page }) => {
   const plain = page.locator('#plain');
   await expect(plain).toHaveAttribute('data-fade-right', '');
@@ -107,6 +115,53 @@ for (const key of ['ArrowLeft', 'Alt+ArrowLeft']) {
       for (const s of await pressAndProbe(page, 'plain', key)) expectCaretClear(s);
     }
     expect(presses).toBeGreaterThan(key === 'ArrowLeft' ? 60 : 5);
+  });
+}
+
+test('a caret scrolled into a fade stays drawn until the fully faded edge', async ({ page }) => {
+  const host = page.locator('#plain');
+  await focusAt(page, 'plain', 'start');
+  // x: px from the left edge, or from the right edge when negative. The fully faded edge is 8px.
+  for (const [caret, x, hidden] of [[20, 12, false], [20, 4, true], [60, -12, false], [60, -4, true]] as const) {
+    await host.locator('input').evaluate((input: HTMLInputElement, caret) => input.setSelectionRange(caret, caret), caret);
+    // Let the selection correction land first, so it doesn't undo the scroll below.
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const scrolled = await host.evaluate((host, [caret, x]) => {
+      const input = host.querySelector('input')!;
+      const span = document.createElement('span');
+      span.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:${getComputedStyle(input).font}`;
+      span.textContent = input.value.slice(0, caret);
+      document.body.append(span);
+      const target = input.offsetLeft + span.getBoundingClientRect().width - (x < 0 ? host.clientWidth + x : x);
+      span.remove();
+      host.scrollLeft = target;
+      return target;
+    }, [caret, x] as const);
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    // Nothing scrolled it back: the caret is still where this case put it.
+    expect(Math.abs(await host.evaluate((host) => host.scrollLeft) - scrolled)).toBeLessThan(1);
+    expect(await host.evaluate((host) => host.hasAttribute('data-caret-hidden'))).toBe(hidden);
+  }
+});
+
+// WebKit centres a caret it scrolls into view; every other jump should stop at the edge.
+for (const [key, from, edge] of [['Alt+ArrowRight', 'start', 'right'], ['Alt+ArrowLeft', 'end', 'left']] as const) {
+  test(`${key} scrolls only as far as the caret needs`, async ({ page }) => {
+    await focusAt(page, 'plain', from);
+    let previous = await page.locator('#plain').evaluate((host) => host.scrollLeft);
+    let scrolls = 0;
+    for (let presses = 0; presses < 20; presses++) {
+      const snapshots = await pressAndProbe(page, 'plain', key);
+      snapshots.forEach(expectCaretClear);
+      const s = snapshots.at(-1)!;
+      const atLimit = s.scrollLeft < 0.5 || s.hiddenRight < 0.5;
+      if (Math.abs(s.scrollLeft - previous) > 0.5 && !atLimit) {
+        scrolls++;
+        expect(Math.abs(s.caretX - (edge === 'right' ? s.clientWidth - SAFE_INSET : SAFE_INSET))).toBeLessThanOrEqual(1.5);
+      }
+      previous = s.scrollLeft;
+    }
+    expect(scrolls).toBeGreaterThan(2);
   });
 }
 

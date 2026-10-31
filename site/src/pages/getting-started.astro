@@ -21,7 +21,7 @@ const themes = { light: 'github-light', dark: 'github-dark' } as const;
   <p>The input stays yours: its value, its events and form submission work as they would without Sabi.</p>
 
   <h2>Style the box on a parent</h2>
-  <p><code>&lt;sabi-input&gt;</code> is the strip of text that scrolls, not the field around it. The fade is a mask, and a mask fades everything the element paints, so a background or border on the element itself would fade too. Put those on a parent, along with the focus style.</p>
+  <p><code>&lt;sabi-input&gt;</code> is the strip of text that scrolls, not the field around it. The fade is a mask, and a mask fades everything the element paints, so a background or border on the element itself would fade too. Put those on a parent, along with the focus style. Vertical padding goes on <code>&lt;sabi-input&gt;</code> itself, so the strip fills the box. It takes the box's rounded corners automatically, so anything it clips, like iPhone selection handles, is cut to the box's shape.</p>
   <Code code={box.trim()} lang="css" themes={themes} defaultColor={false} />
 
   <h2>Prefix and suffix</h2>

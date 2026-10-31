@@ -25,6 +25,7 @@ Each step: **do** → **expect**. Anything else is a bug.
 | Long-prefix field: Cmd+← from the end | The caret stops a third of the way across; the prefix is cut off on the left, not pushed further |
 | Long-prefix field: scroll with the trackpad to the left | The rest of the prefix is reachable |
 | Trackpad-scroll any long field slowly | The fades grow and shrink with the scroll, no jumps |
+| Click into a long field, then trackpad-scroll the caret towards an edge | The caret stays visible through the fade and disappears only in the fully faded edge |
 | Click the empty space to the right of `short.md` | Focus with the caret at the end |
 | Type in the `.md` field | `.md` stays glued to the end of the text, dimmed like `https://` |
 
@@ -40,3 +41,17 @@ Each step: **do** → **expect**. Anything else is a bug.
 | Remount: Unmount, Mount, three times | mounts counts up; after each Mount, fade right `on` and the field still scrolls |
 | Suffix: type, then Swap suffix | gap stays at about `0.0px`; the suffix follows the text |
 | Open the browser console | No errors |
+
+## iPhone
+
+No keyboard shortcuts; use touch instead.
+
+| Do | Expect |
+| --- | --- |
+| Tap into any long field | No grey flash, and nothing drawn past the field's edge |
+| Tap at the end and type | The text scrolls; the caret stays clear of the left fade |
+| Swipe a long field sideways | The fades follow; the caret hides only in the fully faded edge |
+| Press and hold, drag the caret to each edge | The text scrolls; the caret stays visible |
+| Double-tap a word to select it | The handles are clipped at the grey box's edges, following its rounded corners |
+| Tap `https://` | The input focuses |
+| React page: type past the edge, then in Suffix | Every letter appears; the suffix follows the text, dimmed |
