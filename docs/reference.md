@@ -9,6 +9,12 @@ Source material for the Getting started and Styling pages until the docs site ha
 - An element before the input is a prefix. It is dimmed and clicks pass through it.
 - An element after the input (a suffix, a button) follows the end of the text. It is dimmed too.
 
+Text-like inputs (text, search, url, tel) are enhanced. Password fields stay a plain input, so their values are never copied into the page, and so do fields whose caret can't be read (`type="email"`, `number`); a show-password toggle that switches the type is followed. Sabi also follows an input that a framework replaces.
+
+Call `sync()` on the element after changes Sabi can't observe, such as a font swap on the input itself.
+
+Without cascade layers (before Chrome 99, Firefox 97 and Safari 15.4) the element isn't registered and the input stays plain.
+
 ## Right-to-left
 
 The field follows its direction: `dir="rtl"` on `<sabi-input>` or any ancestor starts the text on the right, puts the prefix on the right and the suffix after the end of the text, on the left. An input with its own `dir` attribute, usually `dir="auto"`, sets the field's direction from its text.
@@ -18,6 +24,8 @@ Mixed-direction text (Hebrew or Arabic with numbers, English names, URLs) is sup
 Sabi never moves the caret. Arrow keys belong to the browser, so in mixed Hebrew and English text the caret moves the way it does in any other field in that browser: by screen side in Safari and Firefox, and in reading order in Chrome and Edge, where it jumps to the far end of an English word and walks back through it. Sabi keeps it in view either way.
 
 ## React + TypeScript
+
+With server rendering, import `sabi-input` once the page has hydrated (in an effect, for example): imported earlier, it can stop React tracking the input's value, so `onChange` may fire twice.
 
 Add once so `<sabi-input>` type-checks in JSX:
 

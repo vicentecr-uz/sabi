@@ -124,7 +124,8 @@ const RTL_LINE_END = process.platform === 'darwin' ? 'Meta+ArrowLeft' : 'End';
 // the caret against what's on screen rather than against a model of it. Headless
 // Firefox doesn't paint the caret into screenshots.
 const drawnCaretX = async (page: Page, id: string) => {
-  await page.addStyleTag({ content: `#${id} input { caret-color: rgb(255 0 0) }` });
+  // Not where Sabi hides the caret, so a hidden caret still reads as hidden.
+  await page.addStyleTag({ content: `#${id}:not([data-caret-hidden]) input { caret-color: rgb(255 0 0) }` });
   // The caret blinks; keep looking for a second.
   for (let tries = 0; tries < 12; tries++) {
     const png = (await page.locator(`#${id}`).screenshot({ caret: 'initial', scale: 'css' })).toString('base64');
@@ -355,13 +356,96 @@ test('the input submits with its form', async ({ page }) => {
 });
 
 test('core registers nothing until define() is called', async ({ page }) => {
+  // A page of the same origin without the fixture's script.
+  await page.goto('/CONTRIBUTING.md');
   const state = await page.evaluate(async () => {
     const { define } = await import('/packages/sabi-input/dist/core.js');
-    const before = Boolean(customElements.get('sabi-core-check'));
-    define('sabi-core-check');
-    return { before, after: Boolean(customElements.get('sabi-core-check')) };
+    const before = Boolean(customElements.get('sabi-input'));
+    define();
+    return { before, after: Boolean(customElements.get('sabi-input')) };
   });
   expect(state).toEqual({ before: false, after: true });
+});
+
+test.describe('robustness', () => {
+  const addField = (page: Page, html: string) => page.evaluate((html) => {
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.innerHTML = html;
+    document.body.prepend(box);
+  }, html);
+
+  test('a password never reaches the page and its field stays plain', async ({ page }) => {
+    await addField(page, '<sabi-input id="password"><input type="password" value="hunter2-secret-hunter2-secret-hunter2"></sabi-input>');
+    await page.locator('#password input').focus();
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => document.body.textContent!.includes('hunter2'))).toBe(false);
+    await expect(page.locator('#password')).not.toHaveAttribute('data-fade-right');
+    // A show-password toggle turns it into an ordinary field.
+    await page.locator('#password input').evaluate((input: HTMLInputElement) => { input.type = 'text'; });
+    await expect(page.locator('#password')).toHaveAttribute('data-fade-right', '');
+  });
+
+  test('an email field stays plain and a click on its strip focuses it', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await addField(page, '<sabi-input id="email" style="padding-block: 8px"><input type="email" value="someone@example.com"></sabi-input>');
+    await page.locator('#email').click({ position: { x: 236, y: 4 } });
+    await expect(page.locator('#email input')).toBeFocused();
+    expect(errors).toEqual([]);
+  });
+
+  test('a long value doesn\'t widen the page, and leaves nothing behind', async ({ page }) => {
+    await page.setViewportSize({ width: 400, height: 600 });
+    await page.locator('#plain input').evaluate((input: HTMLInputElement) => {
+      input.value = 'x'.repeat(3000);
+      input.focus();
+    });
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(400);
+    expect(await page.evaluate(() => document.querySelector('body > span[aria-hidden]')!.textContent)).toBe('');
+  });
+
+  test('a very long value doesn\'t throw', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.locator('#plain input').evaluate((input: HTMLInputElement) => {
+      input.value = 'a'.repeat(200_000);
+      input.focus();
+      input.setSelectionRange(200_000, 200_000);
+    });
+    await page.waitForTimeout(300);
+    expect(errors).toEqual([]);
+  });
+
+  test('follows an input that replaces the first one', async ({ page }) => {
+    await page.locator('#plain').evaluate((host) => {
+      const input = document.createElement('input');
+      input.value = 'A replacement input, long enough to overflow the edge of the field';
+      host.querySelector('input')!.replaceWith(input);
+    });
+    await page.locator('#plain input').evaluate((input: HTMLInputElement) => { input.value = 'short'; });
+    await expect(page.locator('#plain')).not.toHaveAttribute('data-fade-right');
+  });
+
+  test('custom properties can be zero and can be set on an ancestor', async ({ page }) => {
+    // No caret penetration: the caret stops a whole fade width (22px) from the edge, not 18px.
+    await page.locator('#plain').evaluate((host) => host.parentElement!.style.setProperty('--sabi-caret-penetration', '0px'));
+    await focusAt(page, 'plain', 'end');
+    let last: Snapshot | null = null;
+    for (let presses = 0; presses < 60; presses++) last = (await pressAndProbe(page, 'plain', 'ArrowLeft')).at(-1)!;
+    expect(last!.fadeLeft).toBe(true);
+    expect(last!.caretX).toBeGreaterThanOrEqual(21);
+  });
+
+  test('without cascade layers it leaves a plain input', async ({ page }) => {
+    await page.addInitScript(() => delete (globalThis as { CSSLayerBlockRule?: unknown }).CSSLayerBlockRule);
+    await page.reload();
+    await page.waitForLoadState('load');
+    expect(await page.evaluate(() => Boolean(customElements.get('sabi-input')))).toBe(false);
+    await page.locator('#plain input').fill('still an ordinary input');
+    await expect(page.locator('#plain input')).toHaveValue('still an ordinary input');
+  });
 });
 
 test.describe('right-to-left', () => {
