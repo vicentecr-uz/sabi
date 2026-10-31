@@ -15,20 +15,23 @@ const layout = (input: HTMLInputElement, text: string) => {
   }
   const style = getComputedStyle(input);
   for (const property of TEXT_PROPERTIES) mirror.style[property] = style[property];
-  mirror.textContent = text || '\u200b';
+  const content = text || '\u200b';
+  if (mirror.textContent !== content) mirror.textContent = content;
   return mirror;
 };
 
 const measure = (input: HTMLInputElement, text: string) => layout(input, text).getBoundingClientRect().width;
 
 // Where the caret at `offset` sits, in px from the left of the input's content box.
-// Asking the browser, rather than adding up the width of the text before it, puts
-// the caret in the right place when right-to-left and left-to-right runs are mixed.
+// Read off the laid-out characters either side of it, rather than adding up the width
+// of the text before it, so it lands right when right-to-left and left-to-right runs mix.
 //
-// Where runs of each direction meet, one offset has two places on screen (the end of
-// one run and the start of the other), and browsers differ on which they draw. `x` is
-// the place next to the character before (the caret after typing or moving forward);
-// `min` and `max` span both, so the scroll can keep either one clear of the fades.
+// Where runs of each direction meet, the two characters don't touch and the offset has
+// two places on screen: the end of one run and the start of the other. Browsers draw
+// the caret beside the character running in the field's direction (the run with the
+// lower bidi level), checked against screenshots in Chromium and WebKit for single and
+// word steps. A collapsed Range can't say which: Chromium reports both places, Firefox
+// one, WebKit the other.
 const caretOffset = (input: HTMLInputElement, offset: number) => {
   const rtl = getComputedStyle(input).direction === 'rtl';
   const text = input.value;
@@ -36,30 +39,53 @@ const caretOffset = (input: HTMLInputElement, offset: number) => {
   const box = span.getBoundingClientRect();
   // Right-to-left text starts at the input's right edge; its caret room is on the left.
   const fromLeft = (x: number) => (rtl ? input.clientWidth - (box.right - x) : x - box.left);
-  const at = (x: number) => ({ x: fromLeft(x), min: fromLeft(x), max: fromLeft(x) });
-  if (!text) return at(rtl ? box.right : box.left);
+  if (!text) return fromLeft(rtl ? box.right : box.left);
 
+  // Whole graphemes, so an emoji, or a letter and its accents, is one character
+  // (a lone accent's box sits on its letter's, not beside it).
+  const starts: number[] = [];
+  if ('Segmenter' in Intl) for (const { index } of new Intl.Segmenter().segment(text)) starts.push(index);
+  // Firefox before 125: whole code points, so only accents count apart.
+  else for (let i = 0; i < text.length; i += text.codePointAt(i)! > 0xffff ? 2 : 1) starts.push(i);
+  const prev = (i: number) => Math.max(-1, ...starts.filter((start) => start < i));
+  const next = (i: number) => starts.find((start) => start > i) ?? (i < text.length ? text.length : text.length + 1);
   const range = document.createRange();
-  range.setStart(span.firstChild!, offset);
-  range.collapse(true);
-  const places = [...range.getClientRects()].filter((rect) => rect.height).map((rect) => rect.left);
-  if (!places.length) {
-    // No geometry for a collapsed range: fall back to the width of the text before it.
-    const before = measure(input, text.slice(0, offset));
-    return at(rtl ? box.right - before : box.left + before);
-  }
-  if (places.length === 1) return at(places[0]!);
+  const char = (from: number, to: number) => {
+    if (from < 0 || to > text.length) return null;
+    range.setStart(span.firstChild!, from);
+    range.setEnd(span.firstChild!, to);
+    return range.getBoundingClientRect();
+  };
+  // The edge two characters share on screen, if they touch. WebKit's boxes can sit a
+  // pixel apart; where runs meet, a whole run lies between.
+  const shared = (a: DOMRect | null, b: DOMRect | null) => {
+    if (!a || !b) return null;
+    if (Math.abs(a.right - b.left) < 2) return a.right;
+    if (Math.abs(a.left - b.right) < 2) return a.left;
+    return null;
+  };
+  const before = char(prev(offset), offset);
+  const after = char(offset, next(offset));
+  const touching = shared(before, after);
+  if (touching !== null) return fromLeft(touching);
 
-  // The character before (or, at the very start, after), whole surrogate pairs included.
-  const step = (i: number) => (/[\uDC00-\uDFFF]/.test(text[i] ?? '') && i > 0 ? i - 1 : i);
-  const from = offset > 0 ? step(offset - 1) : offset;
-  const to = offset > 0 ? offset : offset + (step(offset + 1) === offset ? 2 : 1);
-  range.setStart(span.firstChild!, from);
-  range.setEnd(span.firstChild!, Math.min(text.length, to));
-  const char = range.getBoundingClientRect();
-  const distance = (x: number) => Math.min(Math.abs(x - char.left), Math.abs(x - char.right));
-  const x = places.reduce((best, place) => (distance(place) < distance(best) ? place : best));
-  return { x: fromLeft(x), min: fromLeft(Math.min(...places)), max: fromLeft(Math.max(...places)) };
+  // A run boundary, or an end of the text. A character runs right-to-left if the text
+  // continues to its left (the one before it sits to its right), and is unknown when
+  // that neighbour is itself across a boundary; unknown counts as the field's direction.
+  const runsRtl = (rect: DOMRect, neighbour: DOMRect | null, neighbourIsNext: boolean) => {
+    const edge = shared(rect, neighbour);
+    return edge === null ? rtl : (edge === rect.left) === neighbourIsNext;
+  };
+  const sides = [];
+  if (before) {
+    const r = runsRtl(before, char(prev(prev(offset)), prev(offset)), false);
+    sides.push({ place: r ? before.left : before.right, rtl: r });
+  }
+  if (after) {
+    const r = runsRtl(after, char(next(offset), next(next(offset))), true);
+    sides.push({ place: r ? after.right : after.left, rtl: r });
+  }
+  return fromLeft((sides.find((side) => side.rtl === rtl) ?? sides[0]!).place);
 };
 
 // The browser rounds the scroll range to whole pixels, and right-to-left it can sit
@@ -122,10 +148,9 @@ export class SabiInput extends Base {
     // before the key so the correction moves only as far as the caret needs, as elsewhere.
     input.addEventListener('keydown', (event) => {
       if (this.#frame) this.#syncNow(false);
-      if (this.#anchor === null) {
-        const rtl = getComputedStyle(this).direction === 'rtl';
-        this.#anchor = this.#scrollX(rtl, Math.max(0, this.scrollWidth - this.clientWidth));
-      }
+      // Native scrollLeft, which right-to-left counts from the right end, so text
+      // typed mid-field (widening it on the left) doesn't shift what's in view.
+      this.#anchor ??= this.scrollLeft;
       if (CARET_KEYS.has(event.key)) this.#schedule(true);
     }, { signal });
     document.addEventListener('selectionchange', () => {
@@ -192,10 +217,13 @@ export class SabiInput extends Base {
     const input = this.#input;
     if (!input) return;
 
-    // An input with its own `dir` (often `dir="auto"`, which follows what's typed)
-    // sets the field's direction, so prefix, suffix and scrolling mirror with it.
-    const direction = input.hasAttribute('dir') ? getComputedStyle(input).direction : '';
-    if (this.style.direction !== direction) this.style.direction = direction;
+    // An input with its own `dir` (often `dir="auto"`, which follows what's typed) sets
+    // the field's direction (styles.css), so prefix, suffix and scrolling mirror with it.
+    const direction = input.hasAttribute('dir') ? getComputedStyle(input).direction : null;
+    if (this.getAttribute('data-dir') !== direction) {
+      if (direction) this.setAttribute('data-dir', direction);
+      else this.removeAttribute('data-dir');
+    }
 
     const style = getComputedStyle(this);
     const rtl = style.direction === 'rtl';
@@ -216,26 +244,22 @@ export class SabiInput extends Base {
     if (focused && start !== null && end !== null) {
       const offset = !collapsed && input.selectionDirection === 'backward' ? start : end;
       const inputX = this.#inputX(input, rtl, maxScroll);
-      const caret = caretOffset(input, offset);
-      caretX = inputX + caret.x;
+      caretX = inputX + caretOffset(input, offset);
       if (reveal) {
         const width = this.clientWidth;
-        if (anchor !== null) this.#setScrollX(anchor, rtl, maxScroll);
+        if (anchor !== null) this.scrollLeft = anchor;
         if (collapsed && offset === input.value.length) this.#setScrollX(rtl ? 0 : maxScroll, rtl, maxScroll);
         // At the start, show what's before the text (padding, prefix), but never
         // let a long prefix push the caret past a third of the way across the strip.
         else if (collapsed && offset === 0) {
-          this.#setScrollX(rtl ? Math.min(maxScroll, caretX - (width * 2) / 3) : caretX - width / 3, rtl, maxScroll);
+          this.#setScrollX(rtl ? caretX - (width * 2) / 3 : caretX - width / 3, rtl, maxScroll);
         }
-        // Then, wherever it is, keep the caret clear of any fade it would sit under:
-        // both of its places where directions meet, if they fit, otherwise the likelier one.
-        const both = caret.max - caret.min <= width - 2 * safeInset;
-        const left = inputX + (both ? caret.min : caret.x);
-        const right = inputX + (both ? caret.max : caret.x);
+        // Then, wherever it is, keep the caret clear of any fade it would sit under,
+        // rounding toward clear, since WebKit scrolls by whole pixels.
         const scrollX = this.#scrollX(rtl, maxScroll);
-        if (scrollX > EDGE && left - scrollX < safeInset) this.#setScrollX(left - safeInset, rtl, maxScroll);
-        else if (maxScroll - scrollX > EDGE && right - scrollX > width - safeInset) {
-          this.#setScrollX(right - width + safeInset, rtl, maxScroll);
+        if (scrollX > EDGE && caretX - scrollX < safeInset) this.#setScrollX(Math.floor(caretX - safeInset), rtl, maxScroll);
+        else if (maxScroll - scrollX > EDGE && caretX - scrollX > width - safeInset) {
+          this.#setScrollX(Math.ceil(caretX - width + safeInset), rtl, maxScroll);
         }
       }
     }

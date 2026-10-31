@@ -11,6 +11,7 @@
       .box sabi-input { padding-block: 8px; }
       .box:focus-within { box-shadow: 0 0 0 2px #111; }
       .box input { outline: none; }
+      #browser { margin: 24px 0 0 24px; font-size: 20px; font-weight: 600; color: #3478f6; }
     </style>
     <script type="module" src="/packages/sabi-input/dist/index.js"></script>
   </head>
@@ -79,5 +80,12 @@
         <input aria-label="Auto direction" dir="auto" value="שלום עולם, זה טקסט ארוך מספיק כדי לגלוש מעבר לקצה השדה" />
       </sabi-input>
     </div>
+    <!-- Names the browser in screen recordings. Zen sends Firefox's user agent. -->
+    <p id="browser"></p>
+    <script>
+      const agent = navigator.userAgent;
+      document.getElementById('browser').textContent =
+        /Edg\//.test(agent) ? 'Edge' : /Chrome\//.test(agent) ? 'Chrome' : /Firefox\//.test(agent) ? 'Zen / Firefox' : /Safari\//.test(agent) ? 'Safari' : '';
+    </script>
   </body>
 </html>

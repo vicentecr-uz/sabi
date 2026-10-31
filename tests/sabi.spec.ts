@@ -1,13 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-type Snapshot = { caretX: number; caretXMax: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number; hiddenLeft: number; hiddenRight: number; caret: number | null; caretHidden: boolean };
+type Snapshot = { caretX: number; clientWidth: number; scrollLeft: number; fadeLeft: boolean; fadeRight: boolean; leftProgress: number; rightProgress: number; hiddenLeft: number; hiddenRight: number; caret: number | null; caretHidden: boolean };
 
 // Caret geometry measured independently of the element, at the end of each
 // rendering step (ResizeObserver runs after rAF and layout, right before paint).
 // Single-direction text: the width of the text before the caret, from the side the
-// text starts on. Mixed-direction text (`data-probe="range"` on the field's box):
-// the browser's own layout of a copy of the text, via a collapsed Range. Where runs
-// meet, that has two places, and a caret is clear only if both are (caretX..caretXMax).
+// text starts on. Mixed-direction text (`data-probe="range"` on the field's box): the
+// browser's own layout of a copy of the text, read per character. This mirrors the
+// element's own rule, so the screenshot tests (drawnCaretX) back it up.
 const installProbe = (page: Page) => page.addInitScript(() => {
   const span = document.createElement('span');
   span.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;top:0;left:0;';
@@ -18,20 +18,39 @@ const installProbe = (page: Page) => page.addInitScript(() => {
     span.style.letterSpacing = style.letterSpacing;
     span.style.direction = style.direction;
     const rtl = style.direction === 'rtl';
-    const offset = input.selectionEnd ?? 0;
+    const offset = (input.selectionDirection === 'backward' ? input.selectionStart : input.selectionEnd) ?? 0;
+    // Where directions meet, an offset has two places on screen; the caret is drawn
+    // beside the character running in the field's direction (checked against
+    // screenshots of a coloured caret in Chromium and WebKit, single and word steps).
     if (useRange && input.value) {
       span.textContent = input.value;
       const box = span.getBoundingClientRect();
+      const fromLeft = (x: number) => (rtl ? input.clientWidth - (box.right - x) : x - box.left);
       const range = document.createRange();
-      range.setStart(span.firstChild!, offset);
-      range.collapse(true);
-      const places = [...range.getClientRects()].map((rect) => (rtl ? input.clientWidth - (box.right - rect.left) : rect.left - box.left));
-      return [Math.min(...places), Math.max(...places)];
+      const rect = (from: number, to: number) => {
+        if (from < 0 || to > input.value.length) return null;
+        range.setStart(span.firstChild!, from);
+        range.setEnd(span.firstChild!, to);
+        return range.getBoundingClientRect();
+      };
+      const touch = (a: DOMRect | null, b: DOMRect | null) =>
+        !a || !b ? null : Math.abs(a.right - b.left) < 2 ? a.right : Math.abs(a.left - b.right) < 2 ? a.left : null;
+      const before = rect(offset - 1, offset);
+      const after = rect(offset, offset + 1);
+      const together = touch(before, after);
+      if (together !== null) return fromLeft(together);
+      // Previous character on its right, or next on its left: that character runs right-to-left.
+      const beforeRtl = before && (touch(before, rect(offset - 2, offset - 1)) ?? (rtl ? before.right : before.left)) === before.right;
+      const afterRtl = after && (touch(after, rect(offset + 1, offset + 2)) ?? (rtl ? after.left : after.right)) === after.left;
+      const drawn = before && beforeRtl === rtl ? (beforeRtl ? before.left : before.right)
+        : after && afterRtl === rtl ? (afterRtl ? after.right : after.left)
+        : before ? (beforeRtl ? before.left : before.right) : (afterRtl ? after!.right : after!.left);
+      return fromLeft(drawn);
     }
     span.textContent = input.value.slice(0, offset) || '​';
     const width = offset ? span.getBoundingClientRect().width : 0;
     const x = rtl ? input.clientWidth - width : width;
-    return [x, x];
+    return x;
   };
   const snapshot = (host: HTMLElement) => {
     const input = host.querySelector('input')!;
@@ -39,10 +58,9 @@ const installProbe = (page: Page) => page.addInitScript(() => {
     const max = host.scrollWidth - host.clientWidth;
     const scrollX = rtl ? host.scrollLeft + max : host.scrollLeft;
     const inputX = input.getBoundingClientRect().left - host.getBoundingClientRect().left - host.clientLeft;
-    const [first, last] = caretInInput(input, Boolean(host.closest('[data-probe="range"]')));
+    const caret = caretInInput(input, Boolean(host.closest('[data-probe="range"]')));
     return {
-      caretX: inputX + first,
-      caretXMax: inputX + last,
+      caretX: inputX + caret,
       clientWidth: host.clientWidth,
       scrollLeft: host.scrollLeft,
       fadeLeft: host.hasAttribute('data-fade-left'),
@@ -84,7 +102,7 @@ const GUTTER = 8;
 const expectCaretClear = (s: Snapshot) => {
   expect(s.caretHidden).toBe(false);
   expect(s.caretX).toBeGreaterThanOrEqual((s.fadeLeft ? SAFE_INSET : GUTTER) - 1);
-  expect(s.caretXMax).toBeLessThanOrEqual(s.clientWidth - (s.fadeRight ? SAFE_INSET : GUTTER) + 1);
+  expect(s.caretX).toBeLessThanOrEqual(s.clientWidth - (s.fadeRight ? SAFE_INSET : GUTTER) + 1);
 };
 
 const pressAndProbe = async (page: Page, id: string, key: string, frames = 3) => {
@@ -100,6 +118,39 @@ const LINE_END = process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End';
 // Cmd+arrow jumps visually, so in right-to-left text the start is Cmd+→.
 const RTL_LINE_START = process.platform === 'darwin' ? 'Meta+ArrowRight' : 'Home';
 const RTL_LINE_END = process.platform === 'darwin' ? 'Meta+ArrowLeft' : 'End';
+
+// Where the browser actually draws the caret: its first column in a screenshot, with the
+// caret painted red, or null if it isn't clearly drawn (missing, or faded out). Checks
+// the caret against what's on screen rather than against a model of it. Headless
+// Firefox doesn't paint the caret into screenshots.
+const drawnCaretX = async (page: Page, id: string) => {
+  await page.addStyleTag({ content: `#${id} input { caret-color: rgb(255 0 0) }` });
+  // The caret blinks; keep looking for a second.
+  for (let tries = 0; tries < 12; tries++) {
+    const png = (await page.locator(`#${id}`).screenshot({ caret: 'initial', scale: 'css' })).toString('base64');
+    const x = await page.evaluate(async (png) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const data = context.getImageData(0, 0, image.width, image.height).data;
+      for (let x = 0; x < image.width; x++) {
+        for (let y = 0; y < image.height; y++) {
+          const i = (y * image.width + x) * 4;
+          if (data[i]! > 200 && data[i + 1]! < 90 && data[i + 2]! < 90) return x;
+        }
+      }
+      return null;
+    }, png);
+    if (x !== null) return x;
+    await page.waitForTimeout(100);
+  }
+  return null;
+};
 
 const focusAt = (page: Page, id: string, at: 'start' | 'end') =>
   page.locator(`#${id} input`).evaluate((input: HTMLInputElement, at) => {
@@ -414,7 +465,7 @@ test.describe('right-to-left', () => {
 
   // Where runs of each direction meet, the caret's place on screen stops following its
   // place in the text; measuring the text before it would put the caret somewhere else.
-  for (const [key, from] of [['ArrowLeft', 'start'], ['ArrowRight', 'end']] as const) {
+  for (const [key, from] of [['ArrowLeft', 'start'], ['ArrowRight', 'end'], ['Alt+ArrowLeft', 'start'], ['Alt+ArrowRight', 'end']] as const) {
     test(`${key} across mixed-direction text never paints the caret under a fade`, async ({ page }) => {
       await focusAt(page, 'mixed', from);
       const caret = () => page.locator('#mixed input').evaluate((input: HTMLInputElement) => input.selectionStart);
@@ -428,9 +479,108 @@ test.describe('right-to-left', () => {
         unchanged = now === previous ? unchanged + 1 : 0;
         previous = now;
       }
-      expect(presses).toBeGreaterThan(60);
+      expect(presses).toBeGreaterThan(key.startsWith('Alt') ? 8 : 60);
     });
   }
+
+  // As in left-to-right text, the text scrolls only as far as the caret moves, so a
+  // caret stepping into a word doesn't pull the whole word into view.
+  for (const key of ['ArrowLeft', 'ArrowRight'] as const) {
+    test(`${key} across mixed-direction text scrolls no further than the caret moves`, async ({ page }) => {
+      await focusAt(page, 'mixed', key === 'ArrowLeft' ? 'start' : 'end');
+      let previous: Snapshot | null = null;
+      for (let presses = 0; presses < 80; presses++) {
+        const s = (await pressAndProbe(page, 'mixed', key)).at(-1)!;
+        if (previous) {
+          const moved = Math.abs(s.caretX + s.hiddenLeft - (previous.caretX + previous.hiddenLeft));
+          expect(Math.abs(s.hiddenLeft - previous.hiddenLeft)).toBeLessThanOrEqual(moved + 1);
+        }
+        previous = s;
+      }
+    });
+  }
+
+  test('word jumps across mixed-direction text keep the drawn caret in view', async ({ page, browserName }) => {
+    test.skip(browserName === 'firefox', 'headless Firefox paints no caret into screenshots');
+    for (const [key, from] of [['Alt+ArrowLeft', 'start'], ['Alt+ArrowRight', 'end']] as const) {
+      await focusAt(page, 'mixed', from);
+      let previous = -1;
+      for (let presses = 0; presses < 30; presses++) {
+        await page.keyboard.press(key);
+        const caret = await page.locator('#mixed input').evaluate((input: HTMLInputElement) => input.selectionStart);
+        const x = await drawnCaretX(page, 'mixed');
+        expect(x, `${key} at offset ${caret}`).not.toBeNull();
+        expect(x!).toBeGreaterThanOrEqual(GUTTER);
+        expect(x!).toBeLessThanOrEqual(240 - GUTTER);
+        if (caret === previous) break;
+        previous = caret!;
+      }
+    }
+  });
+
+  test('a letter with an accent counts as one character where directions meet', async ({ page, browserName }) => {
+    test.skip(browserName === 'firefox', 'headless Firefox paints no caret into screenshots');
+    await page.evaluate(() => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.dir = 'rtl';
+      box.style.width = '120px';
+      box.innerHTML = '<sabi-input id="accent"><input aria-label="Accent"></sabi-input>';
+      document.body.prepend(box);
+      box.querySelector('input')!.value = 'אב abcdefghijklmnopqrstuvwxyz\u0301 גד';
+    });
+    await page.locator('#accent input').evaluate((input: HTMLInputElement) => {
+      input.focus();
+      input.setSelectionRange(30, 30);
+    });
+    const x = await drawnCaretX(page, 'accent');
+    expect(x).not.toBeNull();
+    expect(x!).toBeGreaterThanOrEqual(GUTTER);
+  });
+
+  test('typing mid-field keeps the text where it was', async ({ page }) => {
+    await page.locator('#rtl input').evaluate((input: HTMLInputElement) => {
+      input.focus();
+      input.setSelectionRange(3, 3);
+    });
+    await expect.poll(() => page.locator('#rtl').evaluate((host) => host.scrollLeft)).toBe(0);
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(100);
+    expect(await page.locator('#rtl').evaluate((host) => host.scrollLeft)).toBe(0);
+  });
+
+  test('without Intl.Segmenter (Firefox before 125), mixed text still keeps the caret clear', async ({ page }) => {
+    await page.addInitScript(() => delete (Intl as { Segmenter?: unknown }).Segmenter);
+    await page.reload();
+    await page.waitForFunction(() => customElements.get('sabi-input') && !('Segmenter' in Intl));
+    await focusAt(page, 'mixed', 'start');
+    for (let presses = 0; presses < 80; presses++) {
+      for (const s of await pressAndProbe(page, 'mixed', 'ArrowLeft')) expectCaretClear(s);
+    }
+  });
+
+  test('a lone surrogate half doesn\'t throw', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.locator('#rtl input').evaluate((input: HTMLInputElement) => {
+      input.value = '\uD800';
+      input.focus();
+      input.setSelectionRange(0, 0);
+    });
+    await page.waitForTimeout(100);
+    expect(errors).toEqual([]);
+  });
+
+  test('a direction set on the element itself is left alone', async ({ page }) => {
+    await page.evaluate(() => {
+      const box = document.createElement('div');
+      box.className = 'box';
+      box.innerHTML = '<sabi-input id="styled" style="direction: rtl"><input aria-label="Styled" value="שלום"></sabi-input>';
+      document.body.prepend(box);
+    });
+    await page.waitForTimeout(100);
+    expect(await page.locator('#styled').evaluate((host) => host.style.direction)).toBe('rtl');
+  });
 
   test('dir="auto" on the input sets the field\'s direction from what\'s typed', async ({ page }) => {
     const auto = page.locator('#auto');

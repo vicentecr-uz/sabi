@@ -13,7 +13,7 @@ Source material for the Getting started and Styling pages until the docs site ha
 
 The field follows its direction: `dir="rtl"` on `<sabi-input>` or any ancestor starts the text on the right, puts the prefix on the right and the suffix after the end of the text, on the left. An input with its own `dir` attribute, usually `dir="auto"`, sets the field's direction from its text.
 
-Mixed-direction text (Hebrew or Arabic with numbers, English names, URLs) is supported: Sabi asks the browser where the caret is instead of measuring the text before it. Where runs of each direction meet, one caret position has two places on screen and browsers differ on which they draw; Sabi keeps both clear of the fades when they fit in the field, and otherwise the one next to the character before the caret.
+Mixed-direction text (Hebrew or Arabic with numbers, English names, URLs) is supported: Sabi reads where the caret is from the laid-out text instead of measuring the text before it. Where runs of each direction meet, one caret position has two places on screen; browsers draw the caret beside the character running in the field's direction, and Sabi keeps that one clear.
 
 ## React + TypeScript
 

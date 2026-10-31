@@ -50,6 +50,16 @@
     );
   }
 
+  /* Set from the input's own `dir` (core.ts). In the layer, so a `direction` set on
+     the element itself still wins. */
+  sabi-input[data-dir="rtl"] {
+    direction: rtl;
+  }
+
+  sabi-input[data-dir="ltr"] {
+    direction: ltr;
+  }
+
   sabi-input::-webkit-scrollbar {
     display: none;
   }
