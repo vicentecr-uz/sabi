@@ -39,6 +39,39 @@ Making `type="email"` work without changes to your markup was tested in Chromium
 
 If you find a way that keeps an email field's behaviour intact, [open an issue or a pull request](https://github.com/vicentecr-uz/sabi/issues).
 
+## Submitting affixes
+
+`submit-prefix` and `submit-suffix` are independent boolean attributes, off by default. Set the reflected `submitPrefix` and `submitSuffix` properties from JavaScript, or pass those boolean props to React's `Sabi` component.
+
+```html
+<form>
+  <label for="website">Website</label>
+  <sabi-input submit-prefix submit-suffix>
+    <span>https://</span>
+    <input id="website" name="website" value="example" />
+    <span>.com</span>
+  </sabi-input>
+</form>
+```
+
+Native submission and `new FormData(form)` contain `website=https://example.com`. The input's own value stays `example`, with its name and validation unchanged. An empty value stays empty.
+
+```tsx
+import { Sabi } from 'sabi-input/react';
+
+<Sabi submitPrefix={includeProtocol} submitSuffix={includeDomain}>
+  <span>https://</span>
+  <input name="website" aria-label="Website" value={website} onChange={(event) => setWebsite(event.target.value)} />
+  <span>.com</span>
+</Sabi>
+```
+
+Each option uses the `textContent` of direct child elements on its side of the direct child input, in DOM order. Text nodes between elements, including source indentation, are ignored. Spaces inside an affix element are preserved, and no separator is added automatically. Changes to the flags, affix text, input name or input value are read when the form data is created.
+
+Use a distinct name for each composed field. If another control uses the same name, all entries with that name keep their native values, including entries with identical text. An extra form-data entry or an earlier application transformation of the value also leaves that field unchanged. Disabled and nameless inputs do not gain an entry. The input's native form owner determines which form receives its value, including an explicit `form` attribute.
+
+Submission options work with text, search, url, tel, password, email and number inputs. The existing plain-input behaviour of email and number fields is unchanged. Password values are never written into page elements for this feature.
+
 ## Right-to-left
 
 The field follows its direction: `dir="rtl"` on `<sabi-input>` or any ancestor starts the text on the right, puts the prefix on the right and the suffix after the end of the text, on the left. An input with its own `dir` attribute, usually `dir="auto"`, sets the field's direction from its text.
