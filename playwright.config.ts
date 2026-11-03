@@ -6,7 +6,7 @@ export default defineConfig({
   testDir: 'tests',
   // Watching slowed-down tests takes far longer than the default 30s per test.
   timeout: slowMo ? 600_000 : undefined,
-  use: { baseURL: 'http://localhost:4173', launchOptions: { slowMo } },
+  use: { baseURL: 'http://localhost:4173', launchOptions: { slowMo, chromiumSandbox: true } },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
