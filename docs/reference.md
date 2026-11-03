@@ -23,14 +23,17 @@ Mixed-direction text (Hebrew or Arabic with numbers, English names, URLs) is sup
 
 Sabi never moves the caret. Arrow keys belong to the browser, so in mixed Hebrew and English text the caret moves the way it does in any other field in that browser: by screen side in Safari and Firefox, and in reading order in Chrome and Edge, where it jumps to the far end of an English word and walks back through it. Sabi keeps it in view either way.
 
-## React + TypeScript
+## React
 
-With server rendering, import `sabi-input` once the page has hydrated (in an effect, for example): imported earlier, it can stop React tracking the input's value, so `onChange` may fire twice.
+Use the `Sabi` component in place of `<sabi-input>`. It registers the element once the page has hydrated (registered earlier, it can stop React tracking the input's value, so `onChange` may fire twice), and it brings the JSX types for `<sabi-input>` too. Its ref is the `<sabi-input>` element.
 
-Add once so `<sabi-input>` type-checks in JSX:
+```tsx
+import { Sabi } from 'sabi-input/react';
 
-```ts
-import type {} from 'sabi-input/react';
+<Sabi>
+  <span>https://</span>
+  <input value={url} onChange={(event) => setUrl(event.target.value)} />
+</Sabi>
 ```
 
 ## Styling
