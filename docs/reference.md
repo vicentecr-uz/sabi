@@ -9,11 +9,68 @@ Source material for the Getting started and Styling pages until the docs site ha
 - An element before the input is a prefix. It is dimmed and clicks pass through it.
 - An element after the input (a suffix, a button) follows the end of the text. It is dimmed too.
 
-Text-like inputs (text, search, url, tel) are enhanced. Password fields stay a plain input, so their values are never copied into the page, and so do fields whose caret can't be read (`type="email"`, `number`); a show-password toggle that switches the type is followed. Sabi also follows an input that a framework replaces.
+Text-like inputs (text, search, url, tel, password) are enhanced. A password, or any field masked with `-webkit-text-security`, is measured from the browser's own dots, so its value is never copied into the page; a show-password toggle that switches the type is followed. Fields whose caret can't be read (`type="email"`, `number`) stay a plain input: see [Email and number fields](#email-and-number-fields). Sabi also follows an input that a framework replaces.
 
 Call `sync()` on the element after changes Sabi can't observe, such as a font swap on the input itself.
 
 Without cascade layers (before Chrome 99, Firefox 97 and Safari 15.4) the element isn't registered and the input stays plain.
+
+## Email and number fields
+
+Browsers don't expose the caret in `type="email"` and `type="number"` fields (`selectionStart` is `null`, by the HTML spec), and Sabi can't keep a caret clear of the fades without knowing where it is. These fields stay a plain input that scrolls itself, with no fades.
+
+For an email field that should fade, use a text input with the email keyboard and autofill, and validate it yourself:
+
+```html
+<input type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" />
+```
+
+Unlike `type="email"`, a text input submits surrounding spaces (trim the value before sending it), doesn't check the address's format (add a `pattern` or validate on submit), doesn't match `input[type=email]` selectors, and doesn't accept a comma-separated list for `multiple`.
+
+For a number, keep `type="number"`: it rarely outgrows the field, and a text input loses stepping, `valueAsNumber` and min, max and step validation. For long numeric codes and IDs, which aren't quantities, `type="text" inputmode="numeric"` is the better input anyway.
+
+### What was tried
+
+Making `type="email"` work without changes to your markup was tested in Chromium, Firefox and WebKit before release:
+
+- **Converting the field to `type="text"`** when Sabi binds it, with `inputmode` and `autocomplete` added and validity kept through `setCustomValidity` and the spec's email pattern. The fades worked, but the field stopped behaving like an email field: surrounding spaces were submitted (native email fields strip them), errors reported `customError` instead of `typeMismatch`, Firefox accepts addresses with international domains that the pattern rejects, `multiple` diverged, and `input[type=email]` selectors stopped matching.
+- **Reporting `type` as `'email'` after converting it.** Overriding only the getter crashed React's controlled inputs in every engine. Overriding the setter too stopped the crash and a caret reset, but left the differences above, and made `getAttribute('type')` and `type` disagree.
+- **Reading the caret another way.** No API found reports the current caret position in a native email field without changing the field.
+
+If you find a way that keeps an email field's behaviour intact, [open an issue or a pull request](https://github.com/vicentecr-uz/sabi/issues).
+
+## Submitting affixes
+
+`submit-prefix` and `submit-suffix` are independent boolean attributes, off by default. Set the reflected `submitPrefix` and `submitSuffix` properties from JavaScript, or pass those boolean props to React's `Sabi` component.
+
+```html
+<form>
+  <label for="website">Website</label>
+  <sabi-input submit-prefix submit-suffix>
+    <span>https://</span>
+    <input id="website" name="website" value="example" />
+    <span>.com</span>
+  </sabi-input>
+</form>
+```
+
+Native submission and `new FormData(form)` contain `website=https://example.com`. The input's own value stays `example`, with its name and validation unchanged. An empty value stays empty.
+
+```tsx
+import { Sabi } from 'sabi-input/react';
+
+<Sabi submitPrefix={includeProtocol} submitSuffix={includeDomain}>
+  <span>https://</span>
+  <input name="website" aria-label="Website" value={website} onChange={(event) => setWebsite(event.target.value)} />
+  <span>.com</span>
+</Sabi>
+```
+
+Each option uses the `textContent` of direct child elements on its side of the direct child input, in DOM order. Text nodes between elements, including source indentation, are ignored. Spaces inside an affix element are preserved, and no separator is added automatically. Changes to the flags, affix text, input name or input value are read when the form data is created.
+
+Use a distinct name for each composed field. If another control uses the same name, all entries with that name keep their native values, including entries with identical text. An extra form-data entry or an earlier application transformation of the value also leaves that field unchanged. Disabled and nameless inputs do not gain an entry. The input's native form owner determines which form receives its value, including an explicit `form` attribute.
+
+Submission options work with text, search, url, tel, password, email and number inputs. The existing plain-input behaviour of email and number fields is unchanged. Password values are never written into page elements for this feature.
 
 ## Right-to-left
 

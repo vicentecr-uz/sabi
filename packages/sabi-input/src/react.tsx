@@ -2,10 +2,13 @@ import { forwardRef, useEffect, useLayoutEffect, type HTMLAttributes } from 'rea
 import type { SabiInput } from './core.js';
 import { register } from './register.js';
 
+type SubmissionAttributes = { 'submit-prefix'?: '' | true; 'submit-suffix'?: '' | true };
+export type SabiProps = HTMLAttributes<SabiInput> & { submitPrefix?: boolean; submitSuffix?: boolean };
+
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
-      'sabi-input': import('react').DetailedHTMLProps<import('react').HTMLAttributes<SabiInput>, SabiInput>;
+      'sabi-input': import('react').DetailedHTMLProps<import('react').HTMLAttributes<SabiInput> & SubmissionAttributes, SabiInput>;
     }
   }
 }
@@ -15,7 +18,7 @@ declare module 'react' {
 // shows unstyled. useEffect on the server, where useLayoutEffect warns in React 18.
 const useBeforePaint = typeof document === 'undefined' ? useEffect : useLayoutEffect;
 
-export const Sabi = forwardRef<SabiInput, HTMLAttributes<SabiInput>>((props, ref) => {
+export const Sabi = forwardRef<SabiInput, SabiProps>(({ submitPrefix, submitSuffix, ...props }, ref) => {
   useBeforePaint(register, []);
-  return <sabi-input {...props} ref={ref} />;
+  return <sabi-input {...props} ref={ref} submit-prefix={submitPrefix ? '' : undefined} submit-suffix={submitSuffix ? '' : undefined} />;
 });

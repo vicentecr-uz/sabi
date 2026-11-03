@@ -134,10 +134,37 @@ function Suffix() {
   );
 }
 
+function SubmittedAffixes() {
+  const [text, setText] = useState('example');
+  const [changes, setChanges] = useState(0);
+  const [include, setInclude] = useState(true);
+  const [submitted, setSubmitted] = useState('');
+  const form = useRef<HTMLFormElement>(null);
+  return (
+    <section id="submitted-affixes">
+      <h2>Submitted affixes</h2>
+      <form ref={form}>
+        <label htmlFor="submitted-website">Website</label>
+        <div className="box">
+          <Sabi submitPrefix={include} submitSuffix={include}>
+            <span>https://</span>
+            <input id="submitted-website" name="website" value={text} onChange={(event) => { setText(event.target.value); setChanges((count) => count + 1); }} />
+            <span>.com</span>
+          </Sabi>
+        </div>
+        <button type="button" onClick={() => setInclude((value) => !value)}>Toggle submitted affixes</button>
+        <button type="button" onClick={() => setSubmitted(String(new FormData(form.current!).get('website')))}>Read submitted website</button>
+      </form>
+      <Readout rows={{ value: text, onChange: changes, submitted, include: onOff(include) }} />
+    </section>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Controlled />
     <Remount />
     <Suffix />
+    <SubmittedAffixes />
   </StrictMode>,
 );

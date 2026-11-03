@@ -10,7 +10,7 @@ Install it in your project:
 npm install sabi-input
 ```
 
-Import it once to register `<sabi-input>`, then wrap a text `<input>` with it (password and email fields stay plain). An element before the input becomes a prefix; one after it follows the end of the text.
+Import it once to register `<sabi-input>`, then wrap a text or password `<input>` with it (email and number fields stay plain: see [Email and number fields](docs/reference.md#email-and-number-fields)). An element before the input becomes a prefix; one after it follows the end of the text.
 
 ```html
 <script type="module">import 'sabi-input';</script>
@@ -35,6 +35,33 @@ import { Sabi } from 'sabi-input/react';
   </Sabi>
 </label>
 ```
+
+## Submitting affixes
+
+Add `submit-prefix` or `submit-suffix` to include that side in form data. Both are off by default.
+
+```html
+<label for="website">Website</label>
+<sabi-input submit-prefix submit-suffix>
+  <span>https://</span>
+  <input id="website" name="website" value="example" />
+  <span>.com</span>
+</sabi-input>
+```
+
+The input still contains `example`; its form submits `https://example.com`. Empty inputs stay empty. Names shared by more than one control keep their native submission behaviour without added affixes.
+
+In React, use the boolean props `submitPrefix` and `submitSuffix`:
+
+```tsx
+<Sabi submitPrefix submitSuffix>
+  <span>https://</span>
+  <input name="website" aria-label="Website" defaultValue="example" />
+  <span>.com</span>
+</Sabi>
+```
+
+Affixes come from the text of direct child elements before and after the input. Formatting whitespace between elements is ignored; whitespace inside an affix element is preserved. See the [submission reference](docs/reference.md#submitting-affixes) for the full contract.
 
 ## Documentation
 
