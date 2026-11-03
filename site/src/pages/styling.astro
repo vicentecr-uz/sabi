@@ -34,7 +34,7 @@ const variables = [
   <Demo code={prefixStyle} />
 
   <h2>Your rules win</h2>
-  <p>Sabi's styles sit in a cascade layer named <code>sabi</code>, so any rule of yours overrides them without a specificity fight.</p>
+  <p>Sabi's styles sit in a cascade layer named <code>sabi</code>, so any rule of yours overrides them without a specificity fight. The exception is the spacing Sabi measures from: the element's horizontal padding and the input's margin, padding and border. Those are <code>!important</code>, so a page's CSS reset can't break them; set the gutter with <code>--sabi-edge-gutter</code>.</p>
   <p>To ship the CSS yourself, for example under a strict content security policy, import the element without its styles and load the stylesheet your own way:</p>
   <Code code={`import { define } from 'sabi-input/core';\nimport 'sabi-input/styles.css';\n\ndefine();`} lang="js" themes={themes} defaultColor={false} />
 
