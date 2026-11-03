@@ -8,7 +8,7 @@ const TEXT_PROPERTIES = ['font', 'letterSpacing', 'wordSpacing', 'fontKerning', 
 // text doesn't linger in the document.
 let mirror: HTMLSpanElement | null = null;
 
-const layout = (input: HTMLInputElement, text: string) => {
+const layout = (input: HTMLInputElement, text: string, masked = false) => {
   if (!mirror?.isConnected) {
     mirror = document.createElement('span');
     mirror.setAttribute('aria-hidden', 'true');
@@ -17,11 +17,51 @@ const layout = (input: HTMLInputElement, text: string) => {
   }
   const style = getComputedStyle(input);
   for (const property of TEXT_PROPERTIES) mirror.style[property] = style[property];
+  // The browser's own mask glyph: a literal dot measures differently in some fonts
+  // (WebKit's system-ui draws its mask a third wider than U+2022).
+  mirror.style.setProperty('-webkit-text-security', masked ? (security(style) ?? 'disc') : 'none');
   mirror.textContent = text || '\u200b';
   return mirror;
 };
 
-const measure = (input: HTMLInputElement, text: string) => layout(input, text).getBoundingClientRect().width;
+const security = (style: CSSStyleDeclaration) => {
+  const value = style.getPropertyValue('-webkit-text-security');
+  return value && value !== 'none' ? value : null;
+};
+
+// A password, or a field masked with `-webkit-text-security`, is laid out as bullets,
+// one per dot the browser draws, so its value never enters the page.
+const isMasked = (input: HTMLInputElement) => input.type === 'password' || security(getComputedStyle(input)) !== null;
+
+// Chromium draws a dot per grapheme, so `\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67` is one; Firefox and WebKit one per
+// UTF-16 unit, eight. Measured once on a throwaway field with fixed text.
+let dotPerGrapheme: boolean | undefined;
+const dots = (value: string, end = value.length) => {
+  if (dotPerGrapheme === undefined) {
+    const probe = document.createElement('input');
+    probe.type = 'password';
+    probe.style.cssText = 'position:fixed;visibility:hidden;width:1px;padding:0;border:0;font:20px sans-serif;';
+    document.body.append(probe);
+    probe.value = 'a'.repeat(20);
+    const perUnit = probe.scrollWidth;
+    probe.value = '\ud83d\ude00'.repeat(20);
+    dotPerGrapheme = 'Segmenter' in Intl && probe.scrollWidth < perUnit * 1.5;
+    probe.remove();
+  }
+  if (!dotPerGrapheme) return end;
+  let count = 0;
+  for (const { index } of new Intl.Segmenter().segment(value)) {
+    if (index >= end) break;
+    count++;
+  }
+  return count;
+};
+const mask = (value: string) => '\u2022'.repeat(dots(value));
+
+const measure = (input: HTMLInputElement) => {
+  const masked = Boolean(input.value) && isMasked(input);
+  return layout(input, masked ? mask(input.value) : input.value || input.placeholder, masked).getBoundingClientRect().width;
+};
 
 // Where the caret at `offset` sits, in px from the left of the input's content box.
 // Read off the laid-out characters either side of it, rather than adding up the width
@@ -35,12 +75,17 @@ const measure = (input: HTMLInputElement, text: string) => layout(input, text).g
 // one, WebKit the other.
 const caretOffset = (input: HTMLInputElement, offset: number) => {
   const rtl = getComputedStyle(input).direction === 'rtl';
-  const text = input.value;
-  const span = layout(input, text);
+  const masked = isMasked(input);
+  const text = masked ? mask(input.value) : input.value;
+  if (masked) offset = dots(input.value, offset);
+  const span = layout(input, text, masked);
   const box = span.getBoundingClientRect();
   // Right-to-left text starts at the input's right edge; its caret room is on the left.
   const fromLeft = (x: number) => (rtl ? input.clientWidth - (box.right - x) : x - box.left);
   if (!text) return fromLeft(rtl ? box.right : box.left);
+  // A masked field's ends sit on the field's own sides, even where its dots run
+  // left-to-right in a right-to-left field (WebKit with system-ui).
+  if (masked && (offset === 0 || offset === text.length)) return fromLeft((offset === 0) === rtl ? box.right : box.left);
 
   // Whole graphemes, so an emoji, or a letter and its accents, is one character
   // (a lone accent's box sits on its letter's, not beside it).
@@ -172,10 +217,10 @@ export class SabiInput extends Base {
     this.#schedule(false);
   }
 
-  // Password values are never copied into the page, and fields without a readable
-  // caret (`type="email"`, `number`) can't be followed: both stay a plain input.
+  // Fields without a readable caret (`type="email"`, `number`) can't be followed,
+  // so they stay a plain input.
   #plain(input: HTMLInputElement) {
-    return input.type === 'password' || input.selectionStart === null;
+    return input.selectionStart === null;
   }
 
   #attach(input: HTMLInputElement, signal: AbortSignal) {
@@ -263,10 +308,11 @@ export class SabiInput extends Base {
     const rtl = style.direction === 'rtl';
     const gutter = length(style, '--sabi-edge-gutter', 8);
     const fadeWidth = length(style, '--sabi-fade-width', 22);
-    const safeInset = Math.max(gutter, fadeWidth - length(style, '--sabi-caret-penetration', 4));
+    // WebKit draws a masked field's caret up to 2px from where its dots put it.
+    const safeInset = Math.max(gutter, fadeWidth - length(style, '--sabi-caret-penetration', 4)) + (isMasked(input) ? 2 : 0);
 
     // 2px of room for the caret at the end; whatever follows the input overlaps it (styles.css).
-    input.style.width = `${measure(input, input.value || input.placeholder) + 2}px`;
+    input.style.width = `${measure(input) + 2}px`;
     const maxScroll = Math.max(0, this.scrollWidth - this.clientWidth);
     const focused = document.activeElement === input;
     const { selectionStart: start, selectionEnd: end } = input;

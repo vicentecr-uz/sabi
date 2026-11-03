@@ -375,15 +375,79 @@ test.describe('robustness', () => {
     document.body.prepend(box);
   }, html);
 
-  test('a password never reaches the page and its field stays plain', async ({ page }) => {
-    await addField(page, '<sabi-input id="password"><input type="password" value="hunter2-secret-hunter2-secret-hunter2"></sabi-input>');
-    await page.locator('#password input').focus();
-    await page.waitForTimeout(100);
-    expect(await page.evaluate(() => document.body.textContent!.includes('hunter2'))).toBe(false);
-    await expect(page.locator('#password')).not.toHaveAttribute('data-fade-right');
-    // A show-password toggle turns it into an ordinary field.
+  test('a password, or a field masked with -webkit-text-security, never reaches the page', async ({ page }) => {
+    await page.evaluate(() => {
+      // Every write to the mirror, even one emptied before the next frame.
+      const writes: string[] = [];
+      (window as any).__writes = writes;
+      const own = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent')!;
+      Object.defineProperty(Node.prototype, 'textContent', {
+        ...own,
+        set(value: string) {
+          if (this instanceof HTMLSpanElement && this.getAttribute('aria-hidden') === 'true') writes.push(value);
+          own.set!.call(this, value);
+        },
+      });
+    });
+    await addField(page, '<sabi-input id="password"><input type="password" placeholder="Password"></sabi-input>');
+    await addField(page, '<sabi-input id="masked"><input style="-webkit-text-security: disc"></sabi-input>');
+    for (const id of ['password', 'masked']) {
+      await page.locator(`#${id} input`).evaluate((input: HTMLInputElement) => {
+        input.value = 'hunter2-😀-👨‍👩‍👧-'.repeat(4);
+        input.focus();
+      });
+      await expect(page.locator(`#${id}`)).toHaveAttribute('data-fade-left', '');
+      await page.keyboard.press('ArrowLeft');
+      await page.waitForTimeout(50);
+    }
+    const writes = await page.evaluate(() => (window as any).__writes as string[]);
+    expect(writes.length).toBeGreaterThan(0);
+    expect(writes.some((text) => text.includes('hunter2'))).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.outerHTML.includes('hunter2'))).toBe(false);
+    // A show-password toggle shows the text, and hiding it again goes back to dots.
+    const width = () => page.locator('#password input').evaluate((input) => input.style.width);
+    const hidden = await width();
     await page.locator('#password input').evaluate((input: HTMLInputElement) => { input.type = 'text'; });
-    await expect(page.locator('#password')).toHaveAttribute('data-fade-right', '');
+    await expect.poll(width).not.toBe(hidden);
+    await page.locator('#password input').evaluate((input: HTMLInputElement) => { input.type = 'password'; });
+    await expect.poll(width).toBe(hidden);
+  });
+
+  test('a password field keeps the drawn caret clear of the fades', async ({ page, browserName }) => {
+    test.skip(browserName === 'firefox', 'headless Firefox paints no caret into screenshots');
+    // Chromium draws a dot per grapheme and the others one per UTF-16 unit; WebKit's
+    // system-ui dots are wider than U+2022 and run left-to-right in a right-to-left field.
+    for (const [font, dir, value] of [
+      ['Arial', 'ltr', 'long-secret-'.repeat(6)],
+      ['Arial', 'ltr', 'ab😀e\u0301👨‍👩‍👧'.repeat(7)],
+      ['system-ui', 'ltr', 'long-secret-'.repeat(6)],
+      ['Arial', 'rtl', 'אב😀abc'.repeat(10)],
+      ['system-ui', 'rtl', 'אב😀abc'.repeat(10)],
+    ] as const) {
+      await page.evaluate(([font, dir, value]) => {
+        document.getElementById('pw')?.parentElement!.remove();
+        const box = document.createElement('div');
+        box.className = 'box';
+        box.innerHTML = `<sabi-input id="pw" style="font-family: ${font}"><input type="password" dir="${dir}" aria-label="Password"></sabi-input>`;
+        document.body.prepend(box);
+        box.querySelector('input')!.value = value;
+      }, [font, dir, value] as const);
+      await focusAt(page, 'pw', 'end');
+      const [start, end, back, forward] = dir === 'rtl'
+        ? [RTL_LINE_START, RTL_LINE_END, 'ArrowRight', 'ArrowLeft']
+        : [LINE_START, LINE_END, 'ArrowLeft', 'ArrowRight'];
+      for (const key of ['', start, end, ...Array(10).fill(back), 'Z', forward]) {
+        if (key) await page.keyboard.press(key);
+        const label = `${font} ${dir} after ${key || 'focus'}`;
+        const x = await drawnCaretX(page, 'pw');
+        const { width, left, right } = await page.locator('#pw').evaluate((host) => ({
+          width: host.clientWidth, left: host.hasAttribute('data-fade-left'), right: host.hasAttribute('data-fade-right'),
+        }));
+        expect(x, label).not.toBeNull();
+        expect(x!, label).toBeGreaterThanOrEqual((left ? SAFE_INSET : GUTTER) - 1);
+        expect(x!, label).toBeLessThanOrEqual(width - (right ? SAFE_INSET : GUTTER) + 1);
+      }
+    }
   });
 
   test('an email field stays plain and a click on its strip focuses it', async ({ page }) => {
