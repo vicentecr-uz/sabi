@@ -438,6 +438,17 @@ test.describe('robustness', () => {
     expect(last!.caretX).toBeGreaterThanOrEqual(21);
   });
 
+  test('a page\'s unlayered reset and input styles leave its geometry alone', async ({ page }) => {
+    await page.addStyleTag({ content: '*, *::before, *::after { margin: 0; padding: 0 } input { margin: 4px; padding: 6px 10px; border: 2px solid }' });
+    const geometry = await page.locator('#plain').evaluate((host) => {
+      const input = getComputedStyle(host.querySelector('input')!);
+      return [getComputedStyle(host).paddingLeft, getComputedStyle(host).paddingRight, input.marginLeft, input.paddingLeft, input.borderLeftWidth];
+    });
+    expect(geometry).toEqual(['8px', '8px', '0px', '0px', '0px']);
+    await focusAt(page, 'plain', 'end');
+    for (const s of await pressAndProbe(page, 'plain', LINE_START)) expectCaretClear(s);
+  });
+
   test('without cascade layers it leaves a plain input', async ({ page }) => {
     await page.addInitScript(() => delete (globalThis as { CSSLayerBlockRule?: unknown }).CSSLayerBlockRule);
     await page.reload();

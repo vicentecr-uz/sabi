@@ -45,6 +45,6 @@ import { Sabi } from 'sabi-input/react';
 | `--sabi-caret-penetration` | `4px` |
 | `--sabi-edge-gutter` | `8px` |
 
-Styles are injected once into a `@layer`, so your own rules win. To ship the CSS yourself, `import { define } from 'sabi-input/core'`, call `define()`, and load `sabi-input/styles.css` your own way.
+Styles are injected once into a `@layer`, so your own rules win, except for the spacing Sabi measures from: the element's horizontal padding and the input's margin, padding and border. Those are `!important`, so a page's CSS reset can't break them; set the gutter with `--sabi-edge-gutter`. To ship the CSS yourself, `import { define } from 'sabi-input/core'`, call `define()`, and load `sabi-input/styles.css` your own way.
 
 `data-fade-left` and `data-fade-right` are set on the element while text is hidden on that side. `data-fade-start` and `data-fade-end` name the same state by reading direction, so they swap sides in right-to-left text.
