@@ -21,7 +21,8 @@
     },
     "./styles.css": "./dist/styles.css",
     "./react": {
-      "types": "./dist/react.d.ts"
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
     }
   },
   "files": [
@@ -32,7 +33,7 @@
     "./dist/styles.css"
   ],
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts src/core.ts --outdir dist --target browser --splitting && cp src/styles.css src/react.d.ts dist/ && tsc -p tsconfig.json",
+    "build": "rm -rf dist && bun build src/index.ts src/core.ts src/react.tsx --outdir dist --target browser --splitting --external react && printf '\"use client\";\\n' | cat - dist/react.js > dist/react.tmp && mv dist/react.tmp dist/react.js && cp src/styles.css dist/ && tsc -p tsconfig.json",
     "prepack": "bun run build && cp ../../README.md ../../LICENSE .",
     "postpack": "rm README.md LICENSE"
   },
@@ -41,12 +42,21 @@
     "text-field",
     "custom-element",
     "web-component",
+    "react",
     "fade",
     "overflow",
     "caret"
   ],
   "author": "Vicente Cruz",
   "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "typescript": "^7.0.2"
   }

@@ -1,8 +1,7 @@
 import { StrictMode, useEffect, useRef, useState, type RefObject } from 'react';
 import { createRoot } from 'react-dom/client';
-import 'sabi-input';
 import type { SabiInput } from 'sabi-input';
-import type {} from 'sabi-input/react';
+import { Sabi } from 'sabi-input/react';
 
 const LONG = 'example.com/a/long/path/that/runs/past/the/edge/of/the/field';
 
@@ -40,7 +39,7 @@ function Controlled() {
     <section id="controlled">
       <h2>Controlled</h2>
       <div className="box">
-        <sabi-input ref={host}>
+        <Sabi ref={host}>
           <span>https://</span>
           <input
             aria-label="URL"
@@ -50,7 +49,7 @@ function Controlled() {
               setChanges((count) => count + 1);
             }}
           />
-        </sabi-input>
+        </Sabi>
       </div>
       <div className="actions">
         <button onClick={() => setText(LONG)}>Fill</button>
@@ -67,9 +66,9 @@ function RemountField() {
   return (
     <>
       <div className="box">
-        <sabi-input ref={host}>
+        <Sabi ref={host}>
           <input aria-label="Remounted" defaultValue={LONG} />
-        </sabi-input>
+        </Sabi>
       </div>
       <Readout rows={{ 'fade left': onOff(fades.left), 'fade right': onOff(fades.right) }} />
     </>
@@ -122,10 +121,10 @@ function Suffix() {
     <section id="suffix">
       <h2>Suffix</h2>
       <div className="box">
-        <sabi-input>
+        <Sabi>
           <input ref={input} aria-label="Slug" value={text} onChange={(event) => setText(event.target.value)} />
           <span ref={trail}>{suffix}</span>
-        </sabi-input>
+        </Sabi>
       </div>
       <div className="actions">
         <button onClick={() => setSuffix(suffix === '.md' ? '.markdown' : '.md')}>Swap suffix</button>

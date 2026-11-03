@@ -23,6 +23,19 @@ Import it once to register `<sabi-input>`, then wrap a text `<input>` with it (p
 </label>
 ```
 
+In React, use the `Sabi` component instead, with no other import:
+
+```tsx
+import { Sabi } from 'sabi-input/react';
+
+<label className="field">
+  <Sabi>
+    <span>https://</span>
+    <input name="url" />
+  </Sabi>
+</label>
+```
+
 ## Documentation
 
 Find the full API reference in the [documentation](https://sabi.vicentecr.uz/getting-started).
