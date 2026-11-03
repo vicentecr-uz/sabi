@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sabi submitted affixes</title>
+  <script type="module" src="/packages/sabi-input/dist/index.js"></script>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 40px; }
+    .box { width: 240px; margin-bottom: 16px; background: #f2f2f2; border-radius: 8px; }
+    .box sabi-input { padding-block: 8px; }
+    .box input { outline: none; }
+    .box:focus-within { outline: 2px solid #111; }
+    output { display: block; white-space: pre-wrap; margin-top: 16px; }
+  </style>
+  <form id="submission" action="/submitted" method="post">
+    <label for="submission-value">Website</label>
+    <div class="box">
+      <sabi-input id="affixes" submit-prefix submit-suffix>
+        <span>https://</span>
+        <input id="submission-value" name="website" value="example" />
+        <span>.com</span>
+      </sabi-input>
+    </div>
+    <div>
+      <label><input type="checkbox" id="submit-prefix" checked />Submit prefix</label>
+      <label><input type="checkbox" id="submit-suffix" checked />Submit suffix</label>
+    </div>
+    <button type="button" id="read">Preview submission</button>
+    <button type="submit">Submit</button>
+    <output aria-live="polite" id="result"></output>
+  </form>
+  <script>
+    for (const side of ['prefix', 'suffix']) {
+      document.getElementById(`submit-${side}`).addEventListener('change', (event) => {
+        document.getElementById('affixes').toggleAttribute(`submit-${side}`, event.target.checked);
+      });
+    }
+    document.getElementById('read').addEventListener('click', () => {
+      document.getElementById('result').textContent = JSON.stringify([...new FormData(document.getElementById('submission'))], null, 2);
+    });
+  </script>
+</html>

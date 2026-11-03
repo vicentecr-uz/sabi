@@ -1,3 +1,4 @@
+const SUBMISSION_TYPES = new Set(['text', 'search', 'url', 'tel', 'password', 'email', 'number']);
 const CARET_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
 const TEXT_PROPERTIES = ['font', 'letterSpacing', 'wordSpacing', 'fontKerning', 'fontFeatureSettings', 'fontVariationSettings', 'textTransform', 'direction', 'unicodeBidi'] as const;
 
@@ -163,8 +164,16 @@ export class SabiInput extends Base {
   #anchor: number | null = null;
 
   connectedCallback() {
+    for (const property of ['submitPrefix', 'submitSuffix'] as const) {
+      if (Object.hasOwn(this, property)) {
+        const value = this[property];
+        Reflect.deleteProperty(this, property);
+        this[property] = value;
+      }
+    }
     this.#controller = new AbortController();
     const { signal } = this.#controller;
+    this.getRootNode().addEventListener('formdata', (event) => this.#submitAffixes(event as FormDataEvent), { capture: true, signal });
     // Children can arrive after the element is defined, and frameworks swap the input
     // or flip its `type` (a show-password toggle) or `dir`; follow all of it.
     const observer = new MutationObserver(() => this.#bind());
@@ -197,6 +206,34 @@ export class SabiInput extends Base {
     cancelAnimationFrame(this.#frame);
     this.#frame = 0;
     this.#input = null;
+  }
+
+  get submitPrefix() { return this.hasAttribute('submit-prefix'); }
+  set submitPrefix(value: boolean) { this.toggleAttribute('submit-prefix', Boolean(value)); }
+  get submitSuffix() { return this.hasAttribute('submit-suffix'); }
+  set submitSuffix(value: boolean) { this.toggleAttribute('submit-suffix', Boolean(value)); }
+
+  #submitAffixes(event: FormDataEvent) {
+    if (!this.submitPrefix && !this.submitSuffix) return;
+    const input = this.querySelector<HTMLInputElement>(':scope > input');
+    const form = input?.form;
+    if (!input || !form || form !== event.target || !input.name || input.matches(':disabled')
+      || !SUBMISSION_TYPES.has(input.type) || input.closest('datalist') || input.closest('sabi-input') !== this) return;
+    const elements = Object.getOwnPropertyDescriptor(HTMLFormElement.prototype, 'elements')!.get!.call(form) as HTMLFormControlsCollection;
+    const named = [...elements].filter((control) => control.getAttribute('name') === input.name);
+    // Unique-name fields only; repeated names need per-control entry ownership.
+    if (named.length !== 1 || named[0] !== input) return;
+    const data = event.formData;
+    if (!data) return;
+    const values = data.getAll(input.name);
+    const raw = input.value;
+    if (!raw || values.length !== 1 || typeof values[0] !== 'string' || values[0] !== raw) return;
+    const children = [...this.children];
+    const index = children.indexOf(input);
+    const text = (elements: Element[]) => elements.map((element) => element.textContent ?? '').join('');
+    const prefix = this.submitPrefix ? text(children.slice(0, index)) : '';
+    const suffix = this.submitSuffix ? text(children.slice(index + 1)) : '';
+    data.set(input.name, prefix + raw + suffix);
   }
 
   /** Re-measure after changes Sabi can't observe, such as a font swap on the input itself. */
