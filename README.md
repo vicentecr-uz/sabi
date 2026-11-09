@@ -1,6 +1,6 @@
 <!-- TODO: demo video -->
 
-[Sabi](https://sabi.vicentecr.uz/) is a text input whose overflowing edges fade, with the caret always kept in view. You can read more about why and how it was built [here](https://sabi.vicentecr.uz/how-it-works).
+[Sabi](https://sabi.vicentecr.uz/) is a framework-independent input that smoothly fades overflowing text and keeps the caret visible.
 
 ## Usage
 
