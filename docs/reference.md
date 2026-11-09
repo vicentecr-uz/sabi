@@ -1,6 +1,6 @@
 # Reference
 
-Source material for the Getting started and Styling pages until the docs site has them.
+See the [Sabi documentation](https://sabi.vicentecr.uz/getting-started) for the Introduction and Styling pages.
 
 ## Markup
 

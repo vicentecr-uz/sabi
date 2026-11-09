@@ -3,16 +3,14 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*",
-    "site"
+    "packages/*"
   ],
   "scripts": {
     "build": "bun --filter sabi-input build",
     "test": "bun run typecheck && playwright test",
     "test:watch": "SLOWMO=250 playwright test --headed --workers 1",
     "typecheck": "bun run build && tsc -p fixtures/react",
-    "fixtures": "bun run build && bun fixtures/serve.ts",
-    "dev": "bun run build && bun --filter site dev"
+    "fixtures": "bun run build && bun fixtures/serve.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
