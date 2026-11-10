@@ -14,11 +14,6 @@ Bun.serve({
       return Response.json([...await request.formData()]);
     }
     const file = Bun.file(root + (path === '/' ? 'fixtures/index.html' : path.slice(1)));
-    if (await file.exists()) return new Response(file);
-    // demo.html frames the live hero at /hero; anything not on disk is proxied
-    // to the docs site so the frame is same-origin and its assets resolve.
-    const live = await fetch(`https://sabi.vicentecr.uz${path === '/hero' ? '/' : path}${new URL(request.url).search}`);
-    if (!live.ok) return new Response('Not found', { status: 404 });
-    return new Response(await live.arrayBuffer(), { headers: { 'content-type': live.headers.get('content-type') ?? '' } });
+    return (await file.exists()) ? new Response(file) : new Response('Not found', { status: 404 });
   },
 });
