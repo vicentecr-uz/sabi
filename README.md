@@ -65,4 +65,4 @@ Affixes come from the text of direct child elements before and after the input. 
 
 ## Documentation
 
-Find the full API reference in the [documentation](https://sabi.vicentecr.uz/getting-started).
+Find the full API reference in the [documentation](https://sabi.vicentecr.uz/introduction).
