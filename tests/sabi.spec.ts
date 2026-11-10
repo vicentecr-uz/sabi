@@ -340,6 +340,19 @@ test('clicking the empty strip focuses the input at the end', async ({ page }) =
   expect(state.caret).toBe(state.length);
 });
 
+for (const id of ['plain', 'rtl']) {
+  test(`clicking the start gutter focuses the input at the start (${id})`, async ({ page }) => {
+    const field = page.locator(`#${id}`);
+    const box = (await field.boundingBox())!;
+    await page.mouse.click(id === 'rtl' ? box.x + box.width - 3 : box.x + 3, box.y + box.height / 2);
+    const state = await field.locator('input').evaluate((input: HTMLInputElement) => ({
+      focused: document.activeElement === input,
+      caret: input.selectionStart,
+    }));
+    expect(state).toEqual({ focused: true, caret: 0 });
+  });
+}
+
 test('clicking the prefix focuses the input', async ({ page }) => {
   // A real mouse click at the prefix: Playwright's locator.click() refuses pointer-events: none.
   const box = (await page.locator('#prefixed > span').boundingBox())!;

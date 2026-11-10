@@ -185,7 +185,11 @@ export class SabiInput extends Base {
       if (event.target !== this || !input || input.disabled) return;
       input.focus();
       if (this.#plain(input)) return;
-      input.setSelectionRange(input.value.length, input.value.length);
+      // A click before the input's start (its gutter or prefix) goes to the start; anywhere else, the end.
+      const { left, right } = input.getBoundingClientRect();
+      const before = getComputedStyle(input).direction === 'rtl' ? event.clientX >= right : event.clientX <= left;
+      const caret = before ? 0 : input.value.length;
+      input.setSelectionRange(caret, caret);
       this.#syncNow(true);
     }, { signal });
     this.addEventListener('scroll', () => {
