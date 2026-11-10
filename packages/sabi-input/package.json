@@ -1,6 +1,6 @@
 {
   "name": "sabi-input",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A text input whose overflowing edges fade, with the caret always kept in view.",
   "homepage": "https://sabi.vicentecr.uz",
   "repository": {
