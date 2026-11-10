@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Sabi demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500&display=swap" />
+    <!-- Mirrors the hero field on sabi.vicentecr.uz. -->
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #353535;
+        font: 16px/24px "Hanken Grotesk", system-ui, sans-serif;
+      }
+      main {
+        display: grid;
+        place-content: center;
+        gap: 2em;
+        min-height: 100vh;
+      }
+      .field {
+        display: block;
+        width: min(calc(100vw - 32px), 22em);
+        border-radius: 0.7em;
+        corner-shape: superellipse(1);
+        background: #f5f5f7;
+        --sabi-edge-gutter: 14px;
+      }
+      .field:focus-within { background: #ededf0; }
+      .field sabi-input { padding-block: 8px; line-height: 24px; }
+      .field input { outline: none; }
+      /* The portfolio's .text-link underline. */
+      #site {
+        justify-self: center;
+        color: inherit;
+        text-decoration: underline;
+        text-decoration-color: color-mix(in srgb, currentColor 10%, transparent);
+        text-decoration-thickness: 0.08em;
+        text-underline-offset: 0.15em;
+        transition: text-decoration-color 150ms ease;
+        visibility: hidden;
+      }
+      @media (hover: hover) and (pointer: fine) {
+        #site:hover { text-decoration-color: color-mix(in srgb, currentColor 30%, transparent); }
+      }
+      #hero { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; visibility: hidden; }
+    </style>
+    <!-- Stylesheet linked up front so the fields don't paint unstyled before the module runs. -->
+    <link rel="stylesheet" href="/packages/sabi-input/dist/styles.css" />
+    <script type="module">
+      import { define } from '/packages/sabi-input/dist/core.js';
+      define();
+    </script>
+  </head>
+  <body>
+    <main>
+    <label class="field">
+      <sabi-input>
+        <input aria-label="Text" />
+      </sabi-input>
+    </label>
+    <label class="field">
+      <sabi-input>
+        <span>https://</span>
+        <input aria-label="URL" />
+      </sabi-input>
+    </label>
+    <label class="field">
+      <sabi-input>
+        <input aria-label="File name" />
+        <span>.md</span>
+      </sabi-input>
+    </label>
+    <a id="site" href="https://sabi.vicentecr.uz">sabi.vicentecr.uz</a>
+    </main>
+    <!-- Same-origin proxy of the live hero (fixtures/serve.ts), so its blocks can be animated. -->
+    <iframe id="hero" src="/hero" title="Sabi" tabindex="-1"></iframe>
+    <script>
+      // Timings from the portfolio's homeRevealConfig.json: the intro veil's exit, then the home entrance.
+      const exit = { duration: 150, easing: 'ease', fill: 'forwards' };
+      const exitTo = { opacity: 0, filter: 'blur(8px)', transform: 'translateY(-12px) scale(0.97)' };
+      const entrance = { duration: 600, easing: 'cubic-bezier(0.19, 1, 0.22, 1)', fill: 'both' };
+      const enterFrom = { opacity: 0, filter: 'blur(10px)', transform: 'translateY(24px) scale(1.03)' };
+      const enterTo = { opacity: 1, filter: 'blur(0)', transform: 'translateY(0) scale(1)' };
+      const stagger = 200;
+
+      const main = document.querySelector('main');
+      const site = document.getElementById('site');
+      const hero = document.getElementById('hero');
+
+      addEventListener('keydown', (event) => {
+        if (!event.altKey || event.code !== 'KeyR' || site.style.visibility) return;
+        event.preventDefault();
+        site.style.visibility = 'visible';
+        site.animate([enterFrom, enterTo], entrance);
+      });
+
+      // Rows of blocks in view, delayed by vertical position across the stagger, as the home entrance does.
+      const enter = (blocks) => {
+        const top = (el) => el.getBoundingClientRect().top;
+        const first = top(blocks[0]);
+        const last = top(blocks.at(-1));
+        blocks.forEach((el) => el.animate([enterFrom, enterTo], {
+          ...entrance,
+          delay: last === first ? 0 : stagger * (top(el) - first) / (last - first),
+        }));
+      };
+
+      site.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const doc = hero.contentDocument;
+        if (!doc?.body) return void (location.href = site.href);
+        const blocks = [...doc.querySelectorAll('.product-hero > *, [data-dev-project-drop-zone] > :not(.product-hero)')]
+          .filter((el) => { const r = el.getBoundingClientRect(); return r.height > 0 && r.top < innerHeight; });
+        await main.animate([{}, exitTo], exit).finished;
+        hero.style.visibility = 'visible';
+        hero.focus();
+        enter(blocks);
+      });
+    </script>
+  </body>
+</html>
