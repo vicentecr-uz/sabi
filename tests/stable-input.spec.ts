@@ -33,10 +33,9 @@ test('a following suffix keeps the measured-width behavior', async ({ page }) =>
   const input = page.locator('#suffix');
   await expect(host).not.toHaveAttribute('data-stable-input', '');
   await input.fill('');
-  const before = await input.boundingBox();
+  await expect.poll(async () => (await input.boundingBox())?.width).toBeLessThanOrEqual(2);
   await input.fill('a-much-longer-value-that-expands-the-input-before-its-suffix');
-  const after = await input.boundingBox();
-  expect(after!.width).toBeGreaterThan(before!.width);
+  await expect.poll(async () => (await input.boundingBox())?.width).toBeGreaterThan(2);
 });
 
 test('stable eligibility follows changing affixes', async ({ page }) => {
