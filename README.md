@@ -1,6 +1,8 @@
-<!-- TODO: demo video -->
-
 [Sabi](https://sabi.vicentecr.uz/) is a framework-independent input that smoothly fades overflowing text and keeps the caret visible.
+
+![Sabi demo showing overflow fades and caret movement](docs/media/sabi-demo.gif)
+
+[Watch the full-resolution demo](docs/media/sabi-demo.mp4?raw=true)
 
 ## Usage
 
