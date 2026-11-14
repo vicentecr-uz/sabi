@@ -402,8 +402,8 @@ test.describe('robustness', () => {
         },
       });
     });
-    await addField(page, '<sabi-input id="password"><input type="password" placeholder="Password"></sabi-input>');
-    await addField(page, '<sabi-input id="masked"><input style="-webkit-text-security: disc"></sabi-input>');
+    await addField(page, '<sabi-input grow-input id="password"><input type="password" placeholder="Password"></sabi-input>');
+    await addField(page, '<sabi-input grow-input id="masked"><input style="-webkit-text-security: disc"></sabi-input>');
     for (const id of ['password', 'masked']) {
       await page.locator(`#${id} input`).evaluate((input: HTMLInputElement) => {
         input.value = 'hunter2-😀-👨‍👩‍👧-'.repeat(4);
@@ -441,7 +441,7 @@ test.describe('robustness', () => {
         document.getElementById('pw')?.parentElement!.remove();
         const box = document.createElement('div');
         box.className = 'box';
-        box.innerHTML = `<sabi-input id="pw" style="font-family: ${font}"><input type="password" dir="${dir}" aria-label="Password"></sabi-input>`;
+        box.innerHTML = `<sabi-input grow-input id="pw" style="font-family: ${font}"><input type="password" dir="${dir}" aria-label="Password"></sabi-input>`;
         document.body.prepend(box);
         box.querySelector('input')!.value = value;
       }, [font, dir, value] as const);
@@ -697,7 +697,7 @@ test.describe('right-to-left', () => {
       box.className = 'box';
       box.dir = 'rtl';
       box.style.width = '120px';
-      box.innerHTML = '<sabi-input id="accent"><input aria-label="Accent"></sabi-input>';
+      box.innerHTML = '<sabi-input grow-input id="accent"><input aria-label="Accent"></sabi-input>';
       document.body.prepend(box);
       box.querySelector('input')!.value = 'אב abcdefghijklmnopqrstuvwxyz\u0301 גד';
     });

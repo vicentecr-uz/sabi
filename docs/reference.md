@@ -9,7 +9,11 @@ See the [Sabi documentation](https://sabi.vicentecr.uz/introduction) for the Int
 - An element before the input is a prefix. It is dimmed and clicks pass through it.
 - An element after the input (a suffix, a button) follows the end of the text. It is dimmed too.
 
-Add `stable-input` to keep an eligible native text, search, url, tel or password input at a stable width for password-manager controls. This mode applies only when the input is a direct child, has no following element siblings, and any prefix leaves at least a third of the field width for the input. The browser scrolls the input itself and its edges still fade. Fields with a suffix or a prefix that leaves too little room keep the default behavior.
+## Input sizing
+
+Eligible text-like inputs use a stable width by default. The browser scrolls the input itself, while Sabi tracks that scroll so the edges still fade. This applies to a direct-child text, search, url, tel or password input when it has no following element siblings and any prefix leaves at least a third of the field width for the input. A suffix or a prefix that leaves too little room keeps the measured, growing behavior. The legacy `stable-input` attribute is still accepted but is not required.
+
+Add `grow-input` to opt out and use the measured, growing input behavior. In React, write `<Sabi grow-input="" />`. If both attributes are present, `grow-input` takes precedence.
 
 Text-like inputs (text, search, url, tel, password) are enhanced. A password, or any field masked with `-webkit-text-security`, is measured from the browser's own dots, so its value is never copied into the page; a show-password toggle that switches the type is followed. Fields whose caret can't be read (`type="email"`, `number`) stay a plain input: see [Email and number fields](#email-and-number-fields). Sabi also follows an input that a framework replaces.
 

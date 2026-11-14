@@ -180,7 +180,7 @@ export class SabiInput extends Base {
     // Children can arrive after the element is defined, and frameworks swap the input
     // or flip its `type` (a show-password toggle) or `dir`; follow all of it.
     const observer = new MutationObserver(() => this.#bind());
-    observer.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['type', 'dir', 'stable-input'] });
+    observer.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['type', 'dir', 'grow-input'] });
     signal.addEventListener('abort', () => observer.disconnect());
 
     this.addEventListener('click', (event) => {
@@ -270,7 +270,7 @@ export class SabiInput extends Base {
     const input = this.querySelector<HTMLInputElement>(':scope > input');
     const overlays = new Set<Element>();
     let stable = false;
-    if (this.hasAttribute('stable-input') && input && input === this.#input && input.selectionStart !== null
+    if (!this.hasAttribute('grow-input') && input && input === this.#input && input.selectionStart !== null
       && ['text', 'search', 'url', 'tel', 'password'].includes(input.type)) {
       const children = [...this.children];
       const index = children.indexOf(input);
@@ -405,8 +405,17 @@ export class SabiInput extends Base {
 
     if (this.#stable) {
       this.scrollLeft = 0;
-      this.#syncFades(fadeWidth);
-      this.removeAttribute('data-caret-hidden');
+      const { leftProgress, rightProgress } = this.#syncFades(fadeWidth);
+      const hidden = this.#nativeHidden(input, getComputedStyle(input).direction === 'rtl');
+      const { selectionStart: start, selectionEnd: end } = input;
+      const collapsed = start !== null && start === end;
+      const caretX = document.activeElement === input && collapsed && end !== null
+        ? input.getBoundingClientRect().left - this.getBoundingClientRect().left + caretOffset(input, end) - hidden.left
+        : null;
+      const solid = length(style, '--sabi-fade-solid', 8);
+      this.toggleAttribute('data-caret-hidden', caretX !== null && (
+        caretX < solid * leftProgress || caretX > this.clientWidth - solid * rightProgress
+      ));
       return;
     }
 

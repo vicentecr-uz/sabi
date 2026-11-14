@@ -10,6 +10,8 @@ Opens two pages: `http://localhost:4173/` (plain HTML) and `http://localhost:417
 
 To watch the automated tests drive real browser windows: `bun run test:watch`. Add `--project firefox` (or `chromium`, `webkit`) to watch one engine, and `--grep "prefix"` to watch only matching tests.
 
+`/fixtures/index.html` opts into `grow-input` for the caret-positioning checks below. Default stable sizing, native input scrolling and fade tracking are covered separately in `tests/stable-input.spec.ts` using the unflagged fields in `/fixtures/autofill.html`.
+
 Each step: **do** → **expect**. Anything else is a bug.
 
 ## Plain page
