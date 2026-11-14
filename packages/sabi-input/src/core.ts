@@ -410,12 +410,12 @@ export class SabiInput extends Base {
       const { selectionStart: start, selectionEnd: end } = input;
       const collapsed = start !== null && start === end;
       const caretX = document.activeElement === input && collapsed && end !== null
-        ? input.getBoundingClientRect().left - this.getBoundingClientRect().left + caretOffset(input, end) - hidden.left
+        ? caretOffset(input, end) - hidden.left
         : null;
       if (mirror) mirror.textContent = '';
       const solid = length(style, '--sabi-fade-solid', 8);
       this.toggleAttribute('data-caret-hidden', caretX !== null && (
-        caretX < solid * leftProgress || caretX > this.clientWidth - solid * rightProgress
+        caretX < solid * leftProgress - EDGE || caretX > input.clientWidth - solid * rightProgress + EDGE
       ));
       return;
     }

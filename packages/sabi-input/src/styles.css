@@ -68,6 +68,11 @@
     display: none;
   }
 
+  sabi-input[data-stable-input] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
   sabi-input > input {
     flex: none;
     min-width: 0;
@@ -83,6 +88,8 @@
   sabi-input[data-stable-input] > input {
     flex: 1 1 0;
     width: auto;
+    -webkit-mask-image: var(--_sabi-mask);
+    mask-image: var(--_sabi-mask);
   }
 
   sabi-input[data-stable-input] > [data-sabi-stable-overlay] {

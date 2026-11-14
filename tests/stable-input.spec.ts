@@ -23,12 +23,22 @@ test('default input stays fixed behind a short prefix', async ({ page }) => {
   const host = page.locator('#prefix-user').locator('xpath=..');
   const input = page.locator('#prefix-user');
   await expect(host).toHaveAttribute('data-stable-input', '');
+  const masks = async () => host.evaluate((element) => ({
+    host: getComputedStyle(element).maskImage,
+    input: getComputedStyle(element.querySelector('input')!).maskImage,
+  }));
+  await expect.poll(async () => (await masks()).host).toBe('none');
+  await expect.poll(async () => (await masks()).input).not.toBe('none');
   await input.fill('');
   const before = await input.boundingBox();
   await input.fill('a-prefixed-username-long-enough-to-overflow-the-fixed-width-input');
   const after = await input.boundingBox();
   expect(after?.x).toBeCloseTo(before!.x, 1);
   expect(after?.width).toBeCloseTo(before!.width, 1);
+  await host.evaluate((element) => element.setAttribute('grow-input', ''));
+  await expect(host).not.toHaveAttribute('data-stable-input', '');
+  await expect.poll(async () => (await masks()).host).not.toBe('none');
+  await expect.poll(async () => (await masks()).input).toBe('none');
 });
 
 test('default RTL input keeps its box fixed while its native text scrolls', async ({ page }) => {

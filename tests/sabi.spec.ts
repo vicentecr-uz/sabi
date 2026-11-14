@@ -166,6 +166,28 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => customElements.get('sabi-input'));
 });
 
+test('a short prefix keeps the stable mask aligned to the native field', async ({ page, browserName }) => {
+  test.skip(browserName === 'firefox', 'headless Firefox paints no caret into screenshots');
+  await page.goto('/fixtures/autofill.html');
+  const host = page.locator('#prefix-user').locator('xpath=..');
+  const input = page.locator('#prefix-user');
+  await host.evaluate((element) => { element.id = 'stable-prefix'; });
+  await expect(host).toHaveAttribute('data-stable-input', '');
+  await expect.poll(() => host.evaluate((element) => getComputedStyle(element).maskImage)).toBe('none');
+  await expect.poll(() => input.evaluate((element) => getComputedStyle(element).maskImage)).not.toBe('none');
+  await input.fill('');
+  await input.focus();
+  await input.pressSequentially('prefix-value-long-enough-to-overflow-the-native-field');
+  const { left, inputRight } = await host.evaluate((element) => ({
+    left: element.getBoundingClientRect().left,
+    inputRight: element.querySelector('input')!.getBoundingClientRect().right,
+  }));
+  const x = await drawnCaretX(page, 'stable-prefix');
+  expect(x).not.toBeNull();
+  expect(x!).toBeGreaterThanOrEqual(inputRight - left - 5);
+  expect(x!).toBeLessThanOrEqual(inputRight - left);
+});
+
 test('takes the field box\'s corners, so its clip matches the box', async ({ page }) => {
   const radii = await page.locator('#plain').evaluate((host) => [getComputedStyle(host).borderTopLeftRadius, getComputedStyle(host.parentElement!).borderTopLeftRadius]);
   expect(radii[0]).toBe(radii[1]);
