@@ -18,27 +18,17 @@ test('default input keeps its native box fixed as text overflows', async ({ page
   await expect(host).not.toHaveAttribute('data-caret-hidden', '');
 });
 
-test('default input stays fixed behind a short prefix', async ({ page }) => {
+test('a short prefix uses measured sizing and keeps the host mask', async ({ page }) => {
   await page.goto('/fixtures/autofill.html');
   const host = page.locator('#prefix-user').locator('xpath=..');
   const input = page.locator('#prefix-user');
-  await expect(host).toHaveAttribute('data-stable-input', '');
-  const masks = async () => host.evaluate((element) => ({
-    host: getComputedStyle(element).maskImage,
-    input: getComputedStyle(element.querySelector('input')!).maskImage,
-  }));
-  await expect.poll(async () => (await masks()).host).toBe('none');
-  await expect.poll(async () => (await masks()).input).not.toBe('none');
-  await input.fill('');
-  const before = await input.boundingBox();
-  await input.fill('a-prefixed-username-long-enough-to-overflow-the-fixed-width-input');
-  const after = await input.boundingBox();
-  expect(after?.x).toBeCloseTo(before!.x, 1);
-  expect(after?.width).toBeCloseTo(before!.width, 1);
-  await host.evaluate((element) => element.setAttribute('grow-input', ''));
   await expect(host).not.toHaveAttribute('data-stable-input', '');
-  await expect.poll(async () => (await masks()).host).not.toBe('none');
-  await expect.poll(async () => (await masks()).input).toBe('none');
+  expect(await host.evaluate((element) => getComputedStyle(element).maskImage)).not.toBe('none');
+  expect(await input.evaluate((element) => getComputedStyle(element).maskImage)).toBe('none');
+  await input.fill('');
+  await expect.poll(async () => (await input.boundingBox())?.width).toBeLessThanOrEqual(2);
+  await input.fill('a-prefixed-username-long-enough-to-overflow-the-measured-input');
+  await expect.poll(async () => (await input.boundingBox())?.width).toBeGreaterThan(2);
 });
 
 test('default RTL input keeps its box fixed while its native text scrolls', async ({ page }) => {
@@ -69,38 +59,16 @@ test('a following suffix keeps measured-width behavior by default', async ({ pag
   await expect.poll(async () => (await input.boundingBox())?.width).toBeGreaterThan(2);
 });
 
-test('default eligibility follows changing affixes', async ({ page }) => {
+test('adding or removing an authored affix changes sizing eligibility', async ({ page }) => {
   await page.goto('/fixtures/autofill.html');
-  const host = page.locator('#prefix-user').locator('xpath=..');
+  const host = page.locator('#plain-user').locator('xpath=..');
+  await expect(host).toHaveAttribute('data-stable-input', '');
+  await host.evaluate((element) => element.querySelector('input')!.insertAdjacentElement('beforebegin', document.createElement('span')));
+  await expect(host).not.toHaveAttribute('data-stable-input', '');
+  await host.evaluate((element) => element.querySelector('span')!.remove());
   await expect(host).toHaveAttribute('data-stable-input', '');
   await host.evaluate((element) => element.querySelector('input')!.insertAdjacentElement('afterend', document.createElement('span')));
   await expect(host).not.toHaveAttribute('data-stable-input', '');
-  await host.evaluate((element) => element.querySelector('span:last-of-type')!.remove());
-  await expect(host).toHaveAttribute('data-stable-input', '');
-  await host.locator('span').evaluate((element) => { element.textContent = 'a-prefix-too-wide-to-leave-enough-room-for-the-input'; });
-  await expect(host).not.toHaveAttribute('data-stable-input', '');
-});
-
-test('grow-input opts out even when stable-input is present', async ({ page }) => {
-  await page.goto('/fixtures/autofill.html');
-  const host = page.locator('#plain-user').locator('xpath=..');
-  await expect(host).toHaveAttribute('data-stable-input', '');
-  await host.evaluate((element) => { element.setAttribute('stable-input', ''); element.setAttribute('grow-input', ''); });
-  await expect(host).not.toHaveAttribute('data-stable-input', '');
-  await host.evaluate((element) => element.removeAttribute('grow-input'));
-  await expect(host).toHaveAttribute('data-stable-input', '');
-});
-
-test('grow-input retains measured sizing on an otherwise eligible input', async ({ page }) => {
-  await page.goto('/fixtures/autofill.html');
-  const host = page.locator('#plain-user').locator('xpath=..');
-  const input = page.locator('#plain-user');
-  await input.fill('');
-  await host.evaluate((element) => element.setAttribute('grow-input', ''));
-  await expect(host).not.toHaveAttribute('data-stable-input', '');
-  await expect.poll(async () => (await input.boundingBox())?.width).toBeLessThanOrEqual(2);
-  await input.fill('a-username-long-enough-to-expand-the-measured-input-box');
-  await expect.poll(async () => (await input.boundingBox())?.width).toBeGreaterThan(2);
 });
 
 test('default sizing leaves room for a closed-shadow overlay and receives clicks', async ({ page }) => {

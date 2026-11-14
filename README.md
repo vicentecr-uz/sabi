@@ -63,7 +63,7 @@ In React, use the boolean props `submitPrefix` and `submitSuffix`:
 </Sabi>
 ```
 
-Eligible text-like inputs keep a stable width by default, so their own native scrolling handles long values. Add `grow-input` to retain the measured, growing input behavior; this is useful for comparisons and caret-sensitive integrations. The older `stable-input` attribute is still accepted, but is no longer required. See the [input sizing reference](docs/reference.md#input-sizing).
+Text-like inputs with no prefix or suffix keep a stable width by default, so their own native scrolling handles long values. Adding an affix makes the input grow with its text and keeps the affix beside the text. See the [input sizing reference](docs/reference.md#input-sizing).
 
 Affixes come from the text of direct child elements before and after the input. Formatting whitespace between elements is ignored; whitespace inside an affix element is preserved. See the [submission reference](docs/reference.md#submitting-affixes) for the full contract.
 

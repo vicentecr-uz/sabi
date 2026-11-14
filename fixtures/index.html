@@ -17,67 +17,72 @@
   </head>
   <body>
     <div class="box">
-      <sabi-input grow-input id="plain">
+      <sabi-input id="plain">
         <input aria-label="Plain" value="The quick brown fox jumps over the lazy dog while the cat watches 👍🏽 from afar" />
+        <span></span>
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input grow-input id="prefixed">
+      <sabi-input id="prefixed">
         <span>https://</span>
         <input aria-label="URL" value="example.com/a/very/long/path/that/keeps/going/and/going" />
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input grow-input id="long-prefix">
+      <sabi-input id="long-prefix">
         <span>https://a-very-long-prefix-that-is-wider-than-the-field.example/</span>
         <input aria-label="Long prefix" value="path/that/keeps/going/and/going/and/going" />
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input grow-input id="trailed">
+      <sabi-input id="trailed">
         <input aria-label="Slug" value="short" />
         <span id="trail">.md</span>
       </sabi-input>
     </div>
     <form id="form" class="box">
-      <sabi-input grow-input id="resettable">
+      <sabi-input id="resettable">
         <input aria-label="Resettable" value="short" />
+        <span></span>
       </sabi-input>
     </form>
 
     <h2>Right-to-left</h2>
     <div class="box" dir="rtl">
-      <sabi-input grow-input id="rtl">
+      <sabi-input id="rtl">
         <input aria-label="Hebrew" value="השועל החום המהיר קופץ מעל הכלב העצלן בזמן שהחתול צופה מרחוק ושותה תה" />
+        <span></span>
       </sabi-input>
     </div>
     <div class="box" dir="rtl">
-      <sabi-input grow-input id="rtl-prefixed">
+      <sabi-input id="rtl-prefixed">
         <span>بحث:</span>
         <input aria-label="Arabic" value="الثعلب البني السريع يقفز فوق الكلب الكسول بينما تراقب القطة من بعيد" />
       </sabi-input>
     </div>
     <div class="box" dir="rtl">
-      <sabi-input grow-input id="rtl-long-prefix">
+      <sabi-input id="rtl-long-prefix">
         <span>קידומת ארוכה מאוד שרחבה יותר מהשדה עצמו ועוד קצת:</span>
         <input aria-label="Long prefix (RTL)" value="ערך שממשיך וממשיך וממשיך וממשיך הלאה" />
       </sabi-input>
     </div>
     <div class="box" dir="rtl">
-      <sabi-input grow-input id="rtl-trailed">
+      <sabi-input id="rtl-trailed">
         <input aria-label="Slug (RTL)" value="קצר" />
         <span id="rtl-trail">.md</span>
       </sabi-input>
     </div>
     <!-- Mixed runs: the caret's place on screen no longer follows its place in the text. -->
     <div class="box" dir="rtl" data-probe="range">
-      <sabi-input grow-input id="mixed">
+      <sabi-input id="mixed">
         <input aria-label="Mixed" value="הזמנה מספר 48213 עבור Acme Corporation Ltd נשלחה ל-London ב-31 באוקטובר 2026" />
+        <span></span>
       </sabi-input>
     </div>
     <div class="box">
-      <sabi-input grow-input id="auto">
+      <sabi-input id="auto">
         <input aria-label="Auto direction" dir="auto" value="שלום עולם, זה טקסט ארוך מספיק כדי לגלוש מעבר לקצה השדה" />
+        <span></span>
       </sabi-input>
     </div>
     <!-- Names the browser in screen recordings. Zen sends Firefox's user agent. -->

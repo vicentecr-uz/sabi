@@ -180,7 +180,7 @@ export class SabiInput extends Base {
     // Children can arrive after the element is defined, and frameworks swap the input
     // or flip its `type` (a show-password toggle) or `dir`; follow all of it.
     const observer = new MutationObserver(() => this.#bind());
-    observer.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['type', 'dir', 'grow-input'] });
+    observer.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['type', 'dir'] });
     signal.addEventListener('abort', () => observer.disconnect());
 
     this.addEventListener('click', (event) => {
@@ -270,21 +270,17 @@ export class SabiInput extends Base {
     const input = this.querySelector<HTMLInputElement>(':scope > input');
     const overlays = new Set<Element>();
     let stable = false;
-    if (!this.hasAttribute('grow-input') && input && input === this.#input && input.selectionStart !== null
+    if (input && input === this.#input && input.selectionStart !== null
       && ['text', 'search', 'url', 'tel', 'password'].includes(input.type)) {
       const children = [...this.children];
       const index = children.indexOf(input);
       const following = index >= 0 ? children.slice(index + 1) : [];
+      const textAffix = [...this.childNodes].some((node) => node !== input && node.nodeType === Node.TEXT_NODE && Boolean(node.textContent?.trim()));
       for (const child of following) if (this.#isStableOverlay(child)) overlays.add(child);
-      if (index >= 0 && following.length === overlays.size) {
+      if (index === 0 && following.length === overlays.size && !textAffix) {
         const style = getComputedStyle(this);
         const padding = Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
-        const prefixChildren = children.slice(0, index);
-        const prefix = prefixChildren.reduce((width, child) => {
-          const childStyle = getComputedStyle(child);
-          return width + child.getBoundingClientRect().width + Number.parseFloat(childStyle.marginLeft) + Number.parseFloat(childStyle.marginRight);
-        }, 0) + Math.max(0, prefixChildren.length - 1) * (Number.parseFloat(style.columnGap) || 0);
-        stable = this.clientWidth > 0 && this.clientWidth - padding - prefix >= this.clientWidth / 3;
+        stable = this.clientWidth > 0 && this.clientWidth > padding;
       }
     }
     for (const overlay of this.#stableOverlays) {

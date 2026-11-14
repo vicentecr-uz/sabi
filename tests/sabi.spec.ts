@@ -166,12 +166,12 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => customElements.get('sabi-input'));
 });
 
-test('a short prefix keeps the stable mask aligned to the native field', async ({ page, browserName }) => {
+test('an unaffixed field keeps the stable mask aligned to the native input', async ({ page, browserName }) => {
   test.skip(browserName === 'firefox', 'headless Firefox paints no caret into screenshots');
   await page.goto('/fixtures/autofill.html');
-  const host = page.locator('#prefix-user').locator('xpath=..');
-  const input = page.locator('#prefix-user');
-  await host.evaluate((element) => { element.id = 'stable-prefix'; });
+  const host = page.locator('#plain-user').locator('xpath=..');
+  const input = page.locator('#plain-user');
+  await host.evaluate((element) => { element.id = 'stable-unaffixed'; });
   await expect(host).toHaveAttribute('data-stable-input', '');
   await expect.poll(() => host.evaluate((element) => getComputedStyle(element).maskImage)).toBe('none');
   await expect.poll(() => input.evaluate((element) => getComputedStyle(element).maskImage)).not.toBe('none');
@@ -182,7 +182,7 @@ test('a short prefix keeps the stable mask aligned to the native field', async (
     left: element.getBoundingClientRect().left,
     inputRight: element.querySelector('input')!.getBoundingClientRect().right,
   }));
-  const x = await drawnCaretX(page, 'stable-prefix');
+  const x = await drawnCaretX(page, 'stable-unaffixed');
   expect(x).not.toBeNull();
   expect(x!).toBeGreaterThanOrEqual(inputRight - left - 5);
   expect(x!).toBeLessThanOrEqual(inputRight - left);
@@ -424,8 +424,8 @@ test.describe('robustness', () => {
         },
       });
     });
-    await addField(page, '<sabi-input grow-input id="password"><input type="password" placeholder="Password"></sabi-input>');
-    await addField(page, '<sabi-input grow-input id="masked"><input style="-webkit-text-security: disc"></sabi-input>');
+    await addField(page, '<sabi-input id="password"><input type="password" placeholder="Password"><span></span></sabi-input>');
+    await addField(page, '<sabi-input id="masked"><input style="-webkit-text-security: disc"><span></span></sabi-input>');
     for (const id of ['password', 'masked']) {
       await page.locator(`#${id} input`).evaluate((input: HTMLInputElement) => {
         input.value = 'hunter2-😀-👨‍👩‍👧-'.repeat(4);
@@ -463,7 +463,7 @@ test.describe('robustness', () => {
         document.getElementById('pw')?.parentElement!.remove();
         const box = document.createElement('div');
         box.className = 'box';
-        box.innerHTML = `<sabi-input grow-input id="pw" style="font-family: ${font}"><input type="password" dir="${dir}" aria-label="Password"></sabi-input>`;
+        box.innerHTML = `<sabi-input id="pw" style="font-family: ${font}"><input type="password" dir="${dir}" aria-label="Password"><span></span></sabi-input>`;
         document.body.prepend(box);
         box.querySelector('input')!.value = value;
       }, [font, dir, value] as const);
@@ -719,7 +719,7 @@ test.describe('right-to-left', () => {
       box.className = 'box';
       box.dir = 'rtl';
       box.style.width = '120px';
-      box.innerHTML = '<sabi-input grow-input id="accent"><input aria-label="Accent"></sabi-input>';
+      box.innerHTML = '<sabi-input id="accent"><input aria-label="Accent"><span></span></sabi-input>';
       document.body.prepend(box);
       box.querySelector('input')!.value = 'אב abcdefghijklmnopqrstuvwxyz\u0301 גד';
     });

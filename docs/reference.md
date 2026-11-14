@@ -11,9 +11,7 @@ See the [Sabi documentation](https://sabi.vicentecr.uz/introduction) for the Int
 
 ## Input sizing
 
-Eligible text-like inputs use a stable width by default. The browser scrolls the input itself, while Sabi tracks that scroll so the edges still fade. This applies to a direct-child text, search, url, tel or password input when it has no following element siblings and any prefix leaves at least a third of the field width for the input. A suffix or a prefix that leaves too little room keeps the measured, growing behavior. The legacy `stable-input` attribute is still accepted but is not required.
-
-Add `grow-input` to opt out and use the measured, growing input behavior. In React, write `<Sabi grow-input="" />`. If both attributes are present, `grow-input` takes precedence.
+An eligible text, search, url, tel or password input with no authored prefix or suffix uses a stable width. The browser scrolls the input itself, while Sabi tracks that scroll and fades the input's edges. Adding any prefix or suffix uses the measured, growing behavior so the affix stays beside the text. Empty custom elements with zero width are treated as overlays rather than affixes, for password-manager controls.
 
 Text-like inputs (text, search, url, tel, password) are enhanced. A password, or any field masked with `-webkit-text-security`, is measured from the browser's own dots, so its value is never copied into the page; a show-password toggle that switches the type is followed. Fields whose caret can't be read (`type="email"`, `number`) stay a plain input: see [Email and number fields](#email-and-number-fields). Sabi also follows an input that a framework replaces.
 
