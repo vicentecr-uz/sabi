@@ -159,9 +159,11 @@ export class SabiInput extends Base {
   #input: HTMLInputElement | null = null;
   #controller: AbortController | null = null;
   #inputController: AbortController | null = null;
+  #resizeObserver: ResizeObserver | null = null;
   #frame = 0;
   #reveal = false;
   #anchor: number | null = null;
+  #stable = false;
 
   connectedCallback() {
     for (const property of ['submitPrefix', 'submitSuffix'] as const) {
@@ -177,7 +179,7 @@ export class SabiInput extends Base {
     // Children can arrive after the element is defined, and frameworks swap the input
     // or flip its `type` (a show-password toggle) or `dir`; follow all of it.
     const observer = new MutationObserver(() => this.#bind());
-    observer.observe(this, { childList: true, subtree: true, attributes: true, attributeFilter: ['type', 'dir'] });
+    observer.observe(this, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['type', 'dir', 'stable-input'] });
     signal.addEventListener('abort', () => observer.disconnect());
 
     this.addEventListener('click', (event) => {
@@ -196,9 +198,8 @@ export class SabiInput extends Base {
       this.#syncFades(length(getComputedStyle(this), '--sabi-fade-width', 22));
       this.#schedule(false);
     }, { passive: true, signal });
-    const resizeObserver = new ResizeObserver(() => this.#schedule(document.activeElement === this.#input));
-    resizeObserver.observe(this);
-    signal.addEventListener('abort', () => resizeObserver.disconnect());
+    this.#resizeObserver = new ResizeObserver(() => this.#schedule(document.activeElement === this.#input));
+    signal.addEventListener('abort', () => this.#resizeObserver?.disconnect());
     document.fonts?.addEventListener('loadingdone', () => this.#schedule(false), { signal });
 
     this.#bind();
@@ -255,7 +256,36 @@ export class SabiInput extends Base {
         this.#attach(input, this.#inputController.signal);
       }
     }
+    this.#resizeObserver?.disconnect();
+    this.#updateStable();
+    this.#resizeObserver?.observe(this);
+    for (const child of this.children) {
+      if (child !== this.#input || this.#stable) this.#resizeObserver?.observe(child);
+    }
     this.#schedule(false);
+  }
+
+  #updateStable() {
+    const input = this.querySelector<HTMLInputElement>(':scope > input');
+    let stable = false;
+    if (this.hasAttribute('stable-input') && input && input === this.#input && input.selectionStart !== null
+      && ['text', 'search', 'url', 'tel', 'password'].includes(input.type)) {
+      const children = [...this.children];
+      const index = children.indexOf(input);
+      if (index >= 0 && children.slice(index + 1).length === 0) {
+        const style = getComputedStyle(this);
+        const padding = Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+        const prefixChildren = children.slice(0, index);
+        const prefix = prefixChildren.reduce((width, child) => {
+          const childStyle = getComputedStyle(child);
+          return width + child.getBoundingClientRect().width + Number.parseFloat(childStyle.marginLeft) + Number.parseFloat(childStyle.marginRight);
+        }, 0) + Math.max(0, prefixChildren.length - 1) * (Number.parseFloat(style.columnGap) || 0);
+        stable = this.clientWidth > 0 && this.clientWidth - padding - prefix >= this.clientWidth / 3;
+      }
+    }
+    this.#stable = stable;
+    this.toggleAttribute('data-stable-input', stable);
+    if (stable && this.#input?.style.width) this.#input.style.width = '';
   }
 
   // Fields without a readable caret (`type="email"`, `number`) can't be followed,
@@ -272,6 +302,9 @@ export class SabiInput extends Base {
     input.addEventListener('input', () => this.#schedule(true), { signal });
     input.addEventListener('focus', () => this.#schedule(true), { signal });
     input.addEventListener('blur', () => this.#schedule(false), { signal });
+    input.addEventListener('scroll', () => {
+      if (this.#stable) this.#syncFades(length(getComputedStyle(this), '--sabi-fade-width', 22));
+    }, { passive: true, signal });
     // The browser moves the caret right after keydown; correcting in the next
     // animation frame lands before paint, so the caret never shows under a fade.
     // Safari centres a caret it scrolls into view; remember the settled scroll from
@@ -328,6 +361,7 @@ export class SabiInput extends Base {
     this.#anchor = null;
     const input = this.#input;
     if (!input) return;
+    this.#updateStable();
     if (this.#plain(input)) {
       // Fits the strip and scrolls itself, with nothing to fade.
       input.style.width = '100%';
@@ -351,6 +385,13 @@ export class SabiInput extends Base {
     const fadeWidth = length(style, '--sabi-fade-width', 22);
     // WebKit draws a masked field's caret up to 2px from where its dots put it.
     const safeInset = Math.max(gutter, fadeWidth - length(style, '--sabi-caret-penetration', 4)) + (isMasked(input) ? 2 : 0);
+
+    if (this.#stable) {
+      this.scrollLeft = 0;
+      this.#syncFades(fadeWidth);
+      this.removeAttribute('data-caret-hidden');
+      return;
+    }
 
     // 2px of room for the caret at the end; whatever follows the input overlaps it (styles.css).
     input.style.width = `${measure(input) + 2}px`;
@@ -420,9 +461,19 @@ export class SabiInput extends Base {
   #syncFades(fadeWidth: number) {
     const rtl = getComputedStyle(this).direction === 'rtl';
     const maxScroll = Math.max(0, this.scrollWidth - this.clientWidth);
-    const scrollX = this.#scrollX(rtl, maxScroll);
-    const hiddenLeft = Math.max(0, scrollX);
-    const hiddenRight = Math.max(0, maxScroll - scrollX);
+    let scrollX: number;
+    let hiddenLeft: number;
+    let hiddenRight: number;
+    if (this.#stable && this.#input) {
+      const hidden = this.#nativeHidden(this.#input, getComputedStyle(this.#input).direction === 'rtl');
+      scrollX = hidden.left;
+      hiddenLeft = hidden.left;
+      hiddenRight = hidden.right;
+    } else {
+      scrollX = this.#scrollX(rtl, maxScroll);
+      hiddenLeft = Math.max(0, scrollX);
+      hiddenRight = Math.max(0, maxScroll - scrollX);
+    }
     const leftProgress = Math.min(1, hiddenLeft / fadeWidth);
     const rightProgress = Math.min(1, hiddenRight / fadeWidth);
     this.style.setProperty('--sabi-fade-left-progress', String(leftProgress));
@@ -433,6 +484,14 @@ export class SabiInput extends Base {
     this.toggleAttribute('data-fade-start', (rtl ? hiddenRight : hiddenLeft) > EDGE);
     this.toggleAttribute('data-fade-end', (rtl ? hiddenLeft : hiddenRight) > EDGE);
     return { leftProgress, rightProgress, scrollX };
+  }
+
+  #nativeHidden(input: HTMLInputElement, rtl: boolean) {
+    const max = Math.max(0, input.scrollWidth - input.clientWidth);
+    const scroll = input.scrollLeft;
+    return rtl
+      ? { left: Math.max(0, max + scroll), right: Math.max(0, -scroll) }
+      : { left: Math.max(0, scroll), right: Math.max(0, max - scroll) };
   }
 }
 

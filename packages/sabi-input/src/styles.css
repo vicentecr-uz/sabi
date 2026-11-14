@@ -80,6 +80,11 @@
     color: inherit;
   }
 
+  sabi-input[data-stable-input] > input {
+    flex: 1 1 0;
+    width: auto;
+  }
+
   sabi-input[data-caret-hidden] > input {
     caret-color: transparent;
   }
