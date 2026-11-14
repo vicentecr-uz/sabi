@@ -85,21 +85,25 @@
     width: auto;
   }
 
+  sabi-input[data-stable-input] > [data-sabi-stable-overlay] {
+    flex: none;
+  }
+
   sabi-input[data-caret-hidden] > input {
     caret-color: transparent;
   }
 
-  sabi-input > :not(input) {
+  sabi-input > :not(input):not([data-sabi-stable-overlay]) {
     flex: none;
     white-space: pre;
   }
 
   /* Starts where the text ends, over the input's 2px of caret room (core.ts). */
-  sabi-input > input + * {
+  sabi-input > input + *:not([data-sabi-stable-overlay]) {
     margin-inline-start: -2px;
   }
 
-  sabi-input > input ~ * {
+  sabi-input > input ~ *:not([data-sabi-stable-overlay]) {
     opacity: 0.5;
   }
 

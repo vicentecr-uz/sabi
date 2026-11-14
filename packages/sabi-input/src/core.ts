@@ -160,6 +160,7 @@ export class SabiInput extends Base {
   #controller: AbortController | null = null;
   #inputController: AbortController | null = null;
   #resizeObserver: ResizeObserver | null = null;
+  #stableOverlays = new Set<Element>();
   #frame = 0;
   #reveal = false;
   #anchor: number | null = null;
@@ -267,12 +268,15 @@ export class SabiInput extends Base {
 
   #updateStable() {
     const input = this.querySelector<HTMLInputElement>(':scope > input');
+    const overlays = new Set<Element>();
     let stable = false;
     if (this.hasAttribute('stable-input') && input && input === this.#input && input.selectionStart !== null
       && ['text', 'search', 'url', 'tel', 'password'].includes(input.type)) {
       const children = [...this.children];
       const index = children.indexOf(input);
-      if (index >= 0 && children.slice(index + 1).length === 0) {
+      const following = index >= 0 ? children.slice(index + 1) : [];
+      for (const child of following) if (this.#isStableOverlay(child)) overlays.add(child);
+      if (index >= 0 && following.length === overlays.size) {
         const style = getComputedStyle(this);
         const padding = Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
         const prefixChildren = children.slice(0, index);
@@ -283,9 +287,22 @@ export class SabiInput extends Base {
         stable = this.clientWidth > 0 && this.clientWidth - padding - prefix >= this.clientWidth / 3;
       }
     }
+    for (const overlay of this.#stableOverlays) {
+      if (!overlays.has(overlay)) overlay.removeAttribute('data-sabi-stable-overlay');
+    }
+    for (const overlay of overlays) {
+      if (!this.#stableOverlays.has(overlay)) overlay.setAttribute('data-sabi-stable-overlay', '');
+    }
+    this.#stableOverlays = overlays;
     this.#stable = stable;
     this.toggleAttribute('data-stable-input', stable);
     if (stable && this.#input?.style.width) this.#input.style.width = '';
+  }
+
+  #isStableOverlay(element: Element) {
+    // Closed-shadow controls may be absolutely positioned inside a static zero-width host.
+    return element.localName.includes('-') && element.childNodes.length === 0
+      && element.getBoundingClientRect().width === 0;
   }
 
   // Fields without a readable caret (`type="email"`, `number`) can't be followed,
