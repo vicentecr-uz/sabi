@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Sabi password manager QA</title>
+    <style>
+      body { font: 16px/1.4 system-ui, sans-serif; margin: 40px; background: #fff; color: #111; }
+      form { width: 280px; margin: 0 0 24px; }
+      label { display: block; margin: 0 0 6px; }
+      .box { width: 240px; margin: 4px 0 12px; border-radius: 8px; background: #f2f2f2; }
+      .box sabi-input { padding-block: 8px; }
+      .box input { outline: none; }
+    </style>
+    <script type="module" src="/packages/sabi-input/dist/index.js"></script>
+  </head>
+  <body>
+    <form id="plain-login" autocomplete="on">
+      <label for="plain-user">Plain login username</label>
+      <div class="box"><sabi-input stable-input><input id="plain-user" name="username" type="text" autocomplete="username" value="qa-user-not-a-real-account" /></sabi-input></div>
+      <label for="plain-password">Plain login password</label>
+      <div class="box"><sabi-input stable-input><input id="plain-password" name="password" type="password" autocomplete="current-password" value="fake-password-for-qa-only" /></sabi-input></div>
+    </form>
+
+    <form id="prefix-login" autocomplete="on">
+      <label for="prefix-user">Prefixed login username</label>
+      <div class="box"><sabi-input stable-input><span>qa/</span><input id="prefix-user" name="username" type="text" autocomplete="username" value="sample-user-for-qa" /></sabi-input></div>
+      <label for="prefix-password">Prefixed login password</label>
+      <div class="box"><sabi-input stable-input><span>key:</span><input id="prefix-password" name="password" type="password" autocomplete="current-password" value="another-fake-password" /></sabi-input></div>
+    </form>
+
+    <form id="suffix-form" autocomplete="off">
+      <label for="suffix">Flowing suffix (stable mode is ineligible)</label>
+      <div class="box"><sabi-input stable-input><input id="suffix" type="text" value="a-long-value-that-keeps-growing" /><span>.example</span></sabi-input></div>
+    </form>
+
+    <h2>Right to left</h2>
+    <div class="box" dir="rtl"><sabi-input stable-input><span>اسم:</span><input aria-label="RTL username" autocomplete="username" type="text" value="مستخدم تجريبي طويل للاختبار فقط" /></sabi-input></div>
+    <div class="box"><sabi-input stable-input><span>very-long-prefix-that-leaves-less-than-a-third:</span><input aria-label="Long prefix" type="text" value="sample-user" /></sabi-input></div>
+
+    <script>
+      for (const form of document.forms) form.addEventListener('submit', (event) => event.preventDefault());
+    </script>
+  </body>
+</html>
